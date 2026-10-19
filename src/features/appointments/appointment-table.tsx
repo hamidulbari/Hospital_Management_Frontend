@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useNavigationProgress } from "@/components/ui/navigation-progress";
 import { useCan } from "@/components/permissions-provider";
 import { ReasonDialog } from "@/components/ui/reason-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useToast } from "@/components/ui/toast-provider";
+import { startConsultationAction } from "@/features/clinical/actions";
+import { labelFor } from "@/features/patients/options";
 import type { ClientError } from "@/lib/api/errors";
 import { formatLocalTime } from "@/lib/datetime";
 import { cancelAppointmentAction, checkInAppointmentAction, markNoShowAction } from "./actions";
 import { APPOINTMENT_STATUS_OPTIONS, APPOINTMENT_TYPE_OPTIONS, statusTone } from "./options";
-import { labelFor } from "@/features/patients/options";
 import type { AppointmentItem } from "./parse";
 import { RescheduleDialog } from "./reschedule-dialog";
 import { TokenDialog } from "./token-dialog";
@@ -30,12 +33,15 @@ export function AppointmentTable({ items, today, nowTime, timezone }: Props) {
   const router = useRouter();
   const toast = useToast();
   const can = useCan();
+  const progress = useNavigationProgress();
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<AppointmentItem | null>(null);
   const [rescheduleTarget, setRescheduleTarget] = useState<AppointmentItem | null>(null);
   const [noShowTarget, setNoShowTarget] = useState<AppointmentItem | null>(null);
   const [tokenInfo, setTokenInfo] = useState<{ token: string | null; name: string } | null>(null);
+
+  const mayConsult = (can("appointment.consult") || can("appointment.consult.any")) && can("clinical.encounter.write");
 
   /** Returns true when the error was handled by leaving the page. */
   function handleError(error: ClientError): boolean {
@@ -58,6 +64,20 @@ export function AppointmentTable({ items, today, nowTime, timezone }: Props) {
     toast.success("Patient checked in.");
     setTokenInfo({ token: response.data.token, name: item.patientName });
     router.refresh();
+  }
+
+  async function startConsultation(item: AppointmentItem) {
+    setBusyId(item.id);
+    const response = await startConsultationAction(item.id);
+    setBusyId(null);
+    if (!response.ok) {
+      handleError(response.error);
+      return;
+    }
+    toast.success("Consultation started.");
+    if (response.data.warning) toast.error(`The appointment could not be marked as started: ${response.data.warning}`);
+    progress.start();
+    router.push(`/consultation/${response.data.encounterId}`);
   }
 
   async function confirmNoShow() {
@@ -107,6 +127,14 @@ export function AppointmentTable({ items, today, nowTime, timezone }: Props) {
               const actions = [
                 can("appointment.checkin") && canCheckIn(item, today) ? (
                   <Button key="in" size="sm" loading={busyId === item.id} onClick={() => checkIn(item)}>Check in</Button>
+                ) : null,
+                mayConsult && item.status === "checked_in" ? (
+                  <Button key="go" size="sm" loading={busyId === item.id} onClick={() => startConsultation(item)}>Start consultation</Button>
+                ) : null,
+                can("clinical.encounter.view") && item.status === "in_consultation" ? (
+                  <Link key="open" href="/consultation" prefetch={false} className={buttonClasses("secondary", undefined, "sm")}>
+                    Open consultations
+                  </Link>
                 ) : null,
                 can("appointment.checkin") && canNoShow(item, today, nowTime) ? (
                   <Button key="ns" size="sm" variant="secondary" disabled={busyId === item.id} onClick={() => setNoShowTarget(item)}>No-show</Button>

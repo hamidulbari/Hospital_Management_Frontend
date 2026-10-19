@@ -53,6 +53,7 @@ export function DateField({ label, value, onChange, onBlur, name, error, hint, i
   const maxYear = disableFuture ? todayYear : todayYear + 20;
 
   const [text, setText] = useState(() => formatDisplay(value));
+  const [seenValue, setSeenValue] = useState(value);
   const [open, setOpen] = useState(false);
   const [focusIso, setFocusIso] = useState(todayIso);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -60,19 +61,20 @@ export function DateField({ label, value, onChange, onBlur, name, error, hint, i
   const gridRef = useRef<HTMLDivElement>(null);
   const wantFocus = useRef(false);
 
+  // The form changed the value from outside (for example a reset): follow it. Done while rendering, not in an effect.
+  if (value !== seenValue) {
+    setSeenValue(value);
+    if (value === "") {
+      if (text !== "") setText("");
+    } else if (parseIso(value) && parseDisplay(text) !== value) {
+      setText(formatDisplay(value));
+    }
+  }
+
   const selected = parseIso(value) ? value : null;
   const view = parseIso(focusIso) ?? { y: todayYear, m: todayMonth, d: 1 };
   const weeks = useMemo(() => monthWeeks(view.y, view.m), [view.y, view.m]);
   const years = useMemo(() => Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i), [maxYear, minYear]);
-
-  // Keep the typed text in step when the form changes the value from outside (for example reset()).
-  useEffect(() => {
-    if (value === "") {
-      setText((t) => (t === "" ? t : ""));
-      return;
-    }
-    if (parseIso(value)) setText((t) => (parseDisplay(t) === value ? t : formatDisplay(value)));
-  }, [value]);
 
   useEffect(() => {
     if (!open) return;

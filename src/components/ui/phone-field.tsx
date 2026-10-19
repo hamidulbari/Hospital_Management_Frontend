@@ -1,7 +1,7 @@
 "use client";
 
 import "flag-icons/css/flag-icons.min.css";
-import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useId, useMemo, useState, type ChangeEvent } from "react";
 import type { CountryCode } from "libphonenumber-js/min";
 import { DEFAULT_PHONE_COUNTRY, joinPhone, phoneCountries, splitPhone } from "@/lib/phone";
 import { describedBy, FieldShell } from "./field-shell";
@@ -29,10 +29,26 @@ export function PhoneField({ label, value, onChange, onBlur, name, error, hint, 
   const autoId = useId();
   const fieldId = id ?? autoId;
 
-  const initial = useMemo(() => (value ? splitPhone(value) : null), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [country, setCountry] = useState<CountryCode>(initial?.country ?? defaultCountry);
-  const [digits, setDigits] = useState(initial?.digits ?? "");
-  const lastEmitted = useRef(value);
+  const [country, setCountry] = useState<CountryCode>(() => (value ? splitPhone(value)?.country : undefined) ?? defaultCountry);
+  const [digits, setDigits] = useState(() => (value ? (splitPhone(value)?.digits ?? "") : ""));
+  const [seenValue, setSeenValue] = useState(value);
+
+  // What this field itself would send right now. A different value from the form means it was changed from outside (for example a reset).
+  const own = joinPhone(country, digits);
+  if (value !== seenValue) {
+    setSeenValue(value);
+    if (value !== own) {
+      if (value === "") {
+        setDigits("");
+      } else {
+        const parsed = splitPhone(value);
+        if (parsed) {
+          setCountry(parsed.country);
+          setDigits(parsed.digits);
+        }
+      }
+    }
+  }
 
   const entries = useMemo(() => phoneCountries(defaultCountry), [defaultCountry]);
   const options = useMemo<SelectOption[]>(
@@ -41,36 +57,16 @@ export function PhoneField({ label, value, onChange, onBlur, name, error, hint, 
   );
   const dialOf = useMemo(() => new Map<string, string>(entries.map((c) => [c.code, c.dial])), [entries]);
 
-  function emit(next: string) {
-    lastEmitted.current = next;
-    onChange(next);
-  }
-
-  // The form changed the value from outside (for example a reset): follow it.
-  useEffect(() => {
-    if (value === lastEmitted.current) return;
-    lastEmitted.current = value;
-    if (value === "") {
-      setDigits("");
-      return;
-    }
-    const parsed = splitPhone(value);
-    if (parsed) {
-      setCountry(parsed.country);
-      setDigits(parsed.digits);
-    }
-  }, [value]);
-
   function pickCountry(code: string) {
     const next = code as CountryCode;
     setCountry(next);
-    emit(joinPhone(next, digits));
+    onChange(joinPhone(next, digits));
   }
 
   function onDigits(event: ChangeEvent<HTMLInputElement>) {
     const next = event.target.value.replace(/\D/g, "").slice(0, 15);
     setDigits(next);
-    emit(joinPhone(country, next));
+    onChange(joinPhone(country, next));
   }
 
   return (
