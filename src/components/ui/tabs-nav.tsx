@@ -19,7 +19,7 @@ export function TabsNav({ items, label }: { items: { label: string; href: string
             aria-current={active ? "page" : undefined}
             className={clsx(
               "border px-4 py-2 text-sm font-semibold",
-              active ? "border-ink bg-ink text-white" : "border-ink bg-surface text-ink hover:border-primary hover:bg-accent",
+              active ? "border-section bg-section text-white" : "border-ink bg-surface text-ink hover:border-section hover:bg-section-soft",
             )}
           >
             {item.label}

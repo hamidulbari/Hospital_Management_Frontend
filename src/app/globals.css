@@ -9,11 +9,54 @@
   --color-ink: #0f172a;
   --color-muted: #475569;
   --color-error: #b91c1c;
-  --font-headline: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+  /* The colour of the part of the app you are in. Set by data-section (see below). */
+  --color-section: var(--section);
+  --color-section-soft: var(--section-soft);
+  --color-section-ink: var(--section-ink);
+  --font-headline:
+    var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
+  /* Default (login, anything without a section): black. */
+  :root {
+    --section: #0f172a;
+    --section-soft: #bae6fd;
+    --section-ink: #0f172a;
+  }
+  /* One colour per part of the app. White text on --section passes 4.5:1, dark text on --section-soft passes too. */
+  [data-section="dashboard"] {
+    --section: #075985;
+    --section-soft: #bae6fd;
+    --section-ink: #0c4a6e;
+  }
+  [data-section="patients"] {
+    --section: #0f766e;
+    --section-soft: #ccfbf1;
+    --section-ink: #134e4a;
+  }
+  [data-section="appointments"] {
+    --section: #0369a1;
+    --section-soft: #e0f2fe;
+    --section-ink: #0c4a6e;
+  }
+  [data-section="consultation"] {
+    --section: #6d28d9;
+    --section-soft: #ede9fe;
+    --section-ink: #4c1d95;
+  }
+  [data-section="billing"] {
+    --section: #b45309;
+    --section-soft: #fef3c7;
+    --section-ink: #78350f;
+  }
+  [data-section="admin"] {
+    --section: #be185d;
+    --section-soft: #fce7f3;
+    --section-ink: #831843;
+  }
+
   /* Swiss style safety net: no rounding, no shadows anywhere. */
   *,
   *::before,
@@ -26,6 +69,11 @@
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+}
+
+/* Every table header takes the soft colour of its section. */
+main thead {
+  background-color: var(--section-soft);
 }
 
 /* Hide the browser's own reveal button: we draw ours. */
@@ -57,13 +105,16 @@ input::-ms-clear {
   }
 }
 
-/* Paper: A4 with a margin on every side. */
+/* Paper: A4, with a margin on every side. */
 @page {
   size: A4;
-  margin: 16mm 14mm;
+  margin: 14mm 14mm 16mm;
 }
 
-/* Printing: only the paper part of a page. Anything marked data-no-print stays off the paper too. */
+/*
+  Printing: a page prints its own "sheet" (a block marked "hidden print:block").
+  The screen version of the page is marked "print:hidden", and the shell around it is hidden here.
+*/
 @media print {
   aside,
   nav[aria-label],
@@ -78,10 +129,6 @@ input::-ms-clear {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  html,
-  body {
-    font-size: 12px;
-  }
   body,
   main {
     background: #ffffff !important;
@@ -92,6 +139,9 @@ input::-ms-clear {
   main > div {
     max-width: none !important;
   }
+  main thead {
+    background: transparent !important;
+  }
   .page-enter {
     animation: none !important;
   }
@@ -101,10 +151,6 @@ input::-ms-clear {
   }
   table {
     border-collapse: collapse;
-  }
-  th,
-  td {
-    padding: 8px 10px;
   }
   tr,
   section,

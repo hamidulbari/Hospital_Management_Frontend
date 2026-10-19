@@ -20,7 +20,7 @@ export function Pagination({ page, lastPage, total, pageSize, disabled = false, 
   return (
     <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-4 text-sm">
       <p className="text-muted">
-        Showing {from}–{to} of {total}
+        Showing {from}&ndash;{to} of {total}
       </p>
       {lastPage > 1 ? (
         <ul className="flex flex-wrap items-center gap-1">
@@ -32,7 +32,7 @@ export function Pagination({ page, lastPage, total, pageSize, disabled = false, 
           {pageItems(page, lastPage).map((item, index) =>
             item === "gap" ? (
               <li key={`gap-${index}`} aria-hidden="true" className="px-2 text-muted">
-                …
+                &hellip;
               </li>
             ) : (
               <li key={item}>
@@ -44,7 +44,7 @@ export function Pagination({ page, lastPage, total, pageSize, disabled = false, 
                   onClick={() => (item === page ? undefined : onPageChange(item))}
                   className={clsx(
                     "h-10 min-w-10 border px-3 text-sm font-semibold disabled:cursor-not-allowed",
-                    item === page ? "border-ink bg-ink text-white" : "border-ink bg-surface text-ink hover:border-primary hover:bg-accent",
+                    item === page ? "border-section bg-section text-white" : "border-ink bg-surface text-ink hover:border-section hover:bg-section-soft",
                   )}
                 >
                   {item}

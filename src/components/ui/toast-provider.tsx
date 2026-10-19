@@ -39,11 +39,11 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
       onBlur={() => setPaused(false)}
       className={clsx(
         "pointer-events-auto flex items-start gap-3 border border-l-8 p-4 text-sm text-ink",
-        isError ? "border-error bg-surface" : "border-ink bg-accent",
+        isError ? "border-error bg-red-50" : "border-emerald-700 bg-emerald-50",
       )}
     >
       <div className="min-w-0 flex-1">
-        <p className={clsx("font-headline text-xs font-bold uppercase tracking-wider", isError ? "text-error" : "text-ink")}>
+        <p className={clsx("font-headline text-xs font-bold uppercase tracking-wider", isError ? "text-error" : "text-emerald-900")}>
           {isError ? "Not done" : "Done"}
         </p>
         <p className="mt-1 break-words">{item.message}</p>
@@ -55,7 +55,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
         aria-label="Dismiss notification"
         className="flex h-6 w-6 shrink-0 items-center justify-center text-lg leading-none text-ink hover:text-primary"
       >
-        ×
+        &times;
       </button>
     </div>
   );

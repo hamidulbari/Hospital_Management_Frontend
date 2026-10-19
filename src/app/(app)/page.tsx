@@ -1,8 +1,8 @@
-﻿import { Notice } from "@/components/ui/notice";
+import { Notice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { loadDashboardData } from "@/features/dashboard/data";
 import { QuickActions } from "@/features/dashboard/quick-actions";
-import { BarList, ColumnChart, KpiCard, Panel, SampleBadge } from "@/features/dashboard/widgets";
+import { BarList, ColumnChart, KpiCard, Panel, SampleBadge, type Tone } from "@/features/dashboard/widgets";
 import { requireSession } from "@/lib/auth/session";
 import { weekdayName } from "@/lib/calendar";
 import { formatLocalDate } from "@/lib/datetime";
@@ -16,6 +16,18 @@ function greeting(time: string): string {
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
+
+// The same status has the same colour everywhere on this screen. The label always says what it is.
+const STATUS_TONES: Record<string, Tone> = {
+  Booked: "sky",
+  "Checked in": "teal",
+  "In consultation": "violet",
+  Completed: "emerald",
+  Cancelled: "red",
+  "No-show": "amber",
+};
+const METHOD_TONES: Record<string, Tone> = { Cash: "emerald", UPI: "violet", Card: "sky" };
+const DOCTOR_TONES: Tone[] = ["teal", "sky", "violet", "pink", "amber"];
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -34,7 +46,7 @@ export default async function DashboardPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title={`${greeting(now.time)}, ${firstName}`}
-        description={`${hospital?.name || "HMS"} · ${weekdayName(now.today)}, ${formatLocalDate(now.today)}`}
+        description={`${hospital?.name || "HMS"} \u00b7 ${weekdayName(now.today)}, ${formatLocalDate(now.today)}`}
       />
 
       <QuickActions permissions={session.permissions} />
@@ -55,11 +67,11 @@ export default async function DashboardPage() {
             {data.isSample ? <SampleBadge /> : null}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard label="Appointments today" value={String(data.kpis.appointmentsToday)} caption="All statuses" />
-            <KpiCard label="In OPD queue" value={String(data.kpis.inQueue)} caption="Waiting or with a doctor" />
-            <KpiCard label="Completed" value={String(data.kpis.completedToday)} caption="Consultations finished" />
+            <KpiCard tone="sky" label="Appointments today" value={String(data.kpis.appointmentsToday)} caption="All statuses" />
+            <KpiCard tone="violet" label="In OPD queue" value={String(data.kpis.inQueue)} caption="Waiting or with a doctor" />
+            <KpiCard tone="teal" label="Completed" value={String(data.kpis.completedToday)} caption="Consultations finished" />
             {showBilling ? (
-              <KpiCard label="Collected today" value={money(data.kpis.collectedToday)} caption="Payments recorded today" />
+              <KpiCard tone="amber" label="Collected today" value={money(data.kpis.collectedToday)} caption="Payments recorded today" />
             ) : null}
           </div>
         </section>
@@ -67,14 +79,14 @@ export default async function DashboardPage() {
 
       {data && showAppointments ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <Panel title="Appointments, last 7 days" sample={data.isSample} className="lg:col-span-8">
+          <Panel title="Appointments, last 7 days" sample={data.isSample} tone="sky" className="lg:col-span-8">
             <ColumnChart columns={data.weekly} />
           </Panel>
-          <Panel title="Today by status" sample={data.isSample} className="lg:col-span-4">
-            <BarList rows={data.statusBreakdown} />
+          <Panel title="Today by status" sample={data.isSample} tone="violet" className="lg:col-span-4">
+            <BarList rows={data.statusBreakdown.map((row) => ({ ...row, tone: STATUS_TONES[row.label] ?? "ink" }))} />
           </Panel>
 
-          <Panel title="Coming up" sample={data.isSample} className="lg:col-span-7">
+          <Panel title="Coming up" sample={data.isSample} tone="teal" className="lg:col-span-7">
             <ul>
               {data.upcoming.map((item) => (
                 <li key={`${item.time}-${item.patient}`} className="flex items-center gap-4 border-b border-accent py-3 first:pt-0 last:border-b-0 last:pb-0">
@@ -88,11 +100,11 @@ export default async function DashboardPage() {
               ))}
             </ul>
           </Panel>
-          <Panel title="OPD queue" sample={data.isSample} className="lg:col-span-5">
+          <Panel title="OPD queue" sample={data.isSample} tone="violet" className="lg:col-span-5">
             <ul>
               {data.queue.map((item) => (
                 <li key={item.token} className="flex items-center gap-4 border-b border-accent py-3 first:pt-0 last:border-b-0 last:pb-0">
-                  <span className="w-12 font-headline text-3xl font-bold leading-none text-ink">{item.token}</span>
+                  <span className="w-12 font-headline text-3xl font-bold leading-none text-violet-700">{item.token}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-ink">{item.patient}</span>
                   <span className="text-xs text-muted">{item.status}</span>
                 </li>
@@ -100,17 +112,24 @@ export default async function DashboardPage() {
             </ul>
           </Panel>
 
-          <Panel title="Doctor load today" sample={data.isSample} className={showBilling ? "lg:col-span-6" : "lg:col-span-12"}>
-            <BarList rows={data.doctorLoad} />
+          <Panel title="Doctor load today" sample={data.isSample} tone="pink" className={showBilling ? "lg:col-span-6" : "lg:col-span-12"}>
+            <BarList rows={data.doctorLoad.map((row, index) => ({ ...row, tone: DOCTOR_TONES[index % DOCTOR_TONES.length] }))} />
           </Panel>
 
           {showBilling ? (
-            <Panel title="Collection by method" sample={data.isSample} className="lg:col-span-6">
-              <BarList rows={data.collectedByMethod.map((row) => ({ label: row.label, value: row.share, display: money(row.amount) }))} />
+            <Panel title="Collection by method" sample={data.isSample} tone="amber" className="lg:col-span-6">
+              <BarList
+                rows={data.collectedByMethod.map((row) => ({
+                  label: row.label,
+                  value: row.share,
+                  display: money(row.amount),
+                  tone: METHOD_TONES[row.label] ?? "ink",
+                }))}
+              />
               <p className="mb-2 mt-6 font-headline text-xs font-semibold uppercase tracking-wider text-muted">Invoices today</p>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {data.invoiceCounts.map((item) => (
-                  <li key={item.label} className="border border-ink p-3">
+                  <li key={item.label} className="border border-ink bg-section-soft p-3">
                     <p className="font-headline text-2xl font-bold text-ink">{item.value}</p>
                     <p className="text-xs text-muted">{item.label}</p>
                   </li>

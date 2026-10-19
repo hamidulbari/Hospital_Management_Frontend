@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
+import { SectionStripe } from "@/components/ui/section-stripe";
+import { sectionFor } from "@/lib/sections";
 import { SidebarNav, type SidebarItem } from "./sidebar-nav";
 
 type User = { name: string; email: string };
@@ -34,8 +36,11 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
+      {/* A thin line of the five colours across the very top. */}
+      <SectionStripe className="fixed inset-x-0 top-0 z-50 h-1" />
+
       {/* Phone and small tablet: a top bar with a Menu button. */}
-      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-ink bg-surface px-4 md:hidden">
+      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-ink bg-surface px-4 pt-1 md:hidden">
         <p className="font-headline text-xl font-bold tracking-tight text-ink">HMS</p>
         <button
           type="button"
@@ -61,7 +66,7 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
 
       {/* Wide screens: fixed sidebar. Only the menu in the middle scrolls, so Sign out is always visible. */}
       <aside className="hidden border-ink bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col md:self-start md:border-r">
-        <div className="shrink-0 border-b border-ink p-6">
+        <div className="shrink-0 border-b border-ink p-6 pt-7">
           <p className="font-headline text-2xl font-bold tracking-tight text-ink">HMS</p>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -72,7 +77,8 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
         </div>
       </aside>
 
-      <main id="main" className="min-w-0 flex-1 bg-background p-4 sm:p-6 md:p-10">
+      {/* data-section sets the colour of everything inside: buttons, tabs, headings, table headers. */}
+      <main id="main" data-section={sectionFor(pathname)} className="min-w-0 flex-1 bg-background p-4 pt-6 sm:p-6 md:p-10">
         {/* Content stays next to the sidebar and stops growing on very wide screens. */}
         <div className="w-full max-w-[1400px]">
           <Breadcrumbs />

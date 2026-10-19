@@ -1,4 +1,4 @@
-﻿import clsx from "clsx";
+import clsx from "clsx";
 import type { ComponentProps } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "danger";
@@ -6,8 +6,9 @@ export type ButtonSize = "md" | "sm";
 type Props = ComponentProps<"button"> & { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean };
 
 const styles: Record<ButtonVariant, string> = {
-  primary: "border-ink bg-ink text-white hover:border-primary hover:bg-primary",
-  secondary: "border-ink bg-surface text-ink hover:border-primary hover:bg-accent",
+  // The main button takes the colour of the part of the app (black where there is none).
+  primary: "border-section bg-section text-white hover:border-ink hover:bg-ink",
+  secondary: "border-ink bg-surface text-ink hover:border-section hover:bg-section-soft",
   danger: "border-error bg-error text-white hover:bg-surface hover:text-error",
 };
 
@@ -28,7 +29,7 @@ export function buttonClasses(variant: ButtonVariant = "primary", className?: st
 export function Button({ variant = "primary", size = "md", loading = false, disabled, className, children, type = "button", ...rest }: Props) {
   return (
     <button type={type} disabled={disabled || loading} aria-busy={loading || undefined} className={buttonClasses(variant, className, size)} {...rest}>
-      {loading ? "Please wait…" : children}
+      {loading ? "Please wait\u2026" : children}
     </button>
   );
 }
