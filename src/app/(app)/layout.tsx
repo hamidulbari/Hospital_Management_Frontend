@@ -25,14 +25,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         Skip to content
       </a>
       <div className="flex min-h-screen flex-col md:flex-row">
-        <aside className="flex flex-col border-b border-ink bg-surface md:min-h-screen md:w-64 md:shrink-0 md:border-b-0 md:border-r">
-          <div className="border-b border-ink p-6">
+        {/*
+          On wide screens the sidebar is as tall as the window and stays in place while the page scrolls.
+          Only the menu in the middle scrolls, so the user block (Sign out) is always visible.
+        */}
+        <aside className="flex flex-col border-b border-ink bg-surface md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:self-start md:border-b-0 md:border-r">
+          <div className="shrink-0 border-b border-ink p-6">
             <p className="font-headline text-2xl font-bold tracking-tight text-ink">HMS</p>
           </div>
-          <div className="flex-1 p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
             <SidebarNav items={items} />
           </div>
-          <div className="border-t border-ink p-4 text-sm">
+          <div className="shrink-0 border-t border-ink p-4 text-sm">
             <p className="font-medium text-ink">{session.name}</p>
             <p className="break-all text-xs text-muted">{session.email}</p>
             <div className="mt-3 flex flex-col gap-2">
