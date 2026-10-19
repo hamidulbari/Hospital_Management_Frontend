@@ -29,10 +29,10 @@ export function InvoiceFilters({ date, status }: { date: string; status: string 
   return (
     <div
       aria-busy={pending || undefined}
-      className={clsx("mb-6 grid grid-cols-1 items-end gap-5 border border-ink bg-surface p-6 transition-opacity md:grid-cols-12", pending && "opacity-60")}
+      className={clsx("mb-6 grid grid-cols-1   gap-5 border border-ink bg-surface p-6 transition-opacity md:grid-cols-12", pending && "opacity-60")}
     >
       <div className="md:col-span-4">
-        <DateField
+         <DateField
           key={date}
           label="Created on"
           value={date}
@@ -50,7 +50,7 @@ export function InvoiceFilters({ date, status }: { date: string; status: string 
       <div className="md:col-span-4">
         <SelectField label="Status" options={INVOICE_STATUS_OPTIONS} value={status} onChange={(value) => go({ status: value })} allowEmpty emptyLabel="All statuses" placeholder="All statuses" />
       </div>
-      <div className="md:col-span-2">
+      <div className="md:col-span-2 flex items-center ">
         <Button variant="secondary" className="w-full" disabled={!date && !status} onClick={() => go({ date: "", status: "" })}>
           Clear
         </Button>
