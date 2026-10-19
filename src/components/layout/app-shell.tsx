@@ -80,7 +80,7 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
       {/* data-section sets the colour of everything inside: buttons, tabs, headings, table headers. */}
       <main id="main" data-section={sectionFor(pathname)} className="min-w-0 flex-1 bg-background p-4 pt-6 sm:p-6 md:p-10">
         {/* Content stays next to the sidebar and stops growing on very wide screens. */}
-        <div className="w-full max-w-[1400px]">
+        <div className="w-full ">
           <Breadcrumbs />
           {children}
         </div>
