@@ -12,6 +12,8 @@ export const slotQuerySchema = z
     from: isoDate,
     to: isoDate,
     timezone: z.string().max(64).optional(),
+    /** A walk-in may use the slot that is running now. */
+    include_running: z.boolean().optional(),
   })
   .refine(
     (v) => {
@@ -35,4 +37,9 @@ export const reasonSchema = z.object({
   reason: z.string().trim().min(1, "Enter a reason.").max(150, "At most 150 characters."),
 });
 
-export const rescheduleSchema = z.object({ date: isoDate, time: hhmm });
+/** The reason is optional and kept in the status history only. */
+export const rescheduleSchema = z.object({
+  date: isoDate,
+  time: hhmm,
+  reason: z.string().trim().max(100, "At most 100 characters.").optional(),
+});

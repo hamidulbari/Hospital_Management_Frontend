@@ -52,48 +52,50 @@ function parseVital(raw: unknown): VitalItem {
     unit: str(o.unit),
     status: str(o.status),
     reason: strOrNull(o.error_reason) ?? strOrNull(o.reason),
-    recordedAt: strOrNull(o.recorded_at) ?? strOrNull(o.observed_at) ?? strOrNull(o.created_at),
+    recordedAt: strOrNull(o.observed_at) ?? strOrNull(o.recorded_at) ?? strOrNull(o.created_at),
   };
 }
 
-export function parseVersion(raw: unknown): NoteVersion {
+/** The person who wrote or signed a version. The server sends a plain text; an object is read too. */
+function authorOf(o: Rec): string {
+  const value = o.author ?? o.signed_by ?? o.created_by;
+  if (typeof value === "string") return value;
+  return nameOf(value) || str(o.author_name);
+}
+
+/** A version of a note. "current" and "draft" carry no status of their own, so the caller says what they are. */
+export function parseVersion(raw: unknown, defaultStatus = ""): NoteVersion {
   const o = rec(raw);
   return {
     id: str(o.id),
     number: text(o.version) || text(o.version_number) || text(o.number),
-    status: str(o.status),
+    status: str(o.status) || defaultStatus,
     body: str(o.body),
-    reason: strOrNull(o.reason) ?? strOrNull(o.amendment_reason),
+    reason: strOrNull(o.amendment_reason) ?? strOrNull(o.reason),
     signedAt: strOrNull(o.signed_at),
-    author: nameOf(o.author ?? o.signed_by ?? o.created_by) || str(o.author_name),
+    author: authorOf(o),
   };
 }
 
 function parseNote(raw: unknown): NoteItem {
   const n = rec(raw);
-  const versions = list(n.versions).map(parseVersion);
 
-  // Both are typed "NoteVersion or null" on purpose: they can be filled in, or cleared, further down.
-  let signed: NoteVersion | null = versions.filter((v) => v.status === "signed").slice(-1)[0] ?? null;
-  let draft: NoteVersion | null = versions.find((v) => v.status === "draft") ?? null;
-
-  const pick = (...keys: string[]): NoteVersion | null => {
-    for (const key of keys) {
-      const value = n[key];
-      if (typeof value === "object" && value !== null && !Array.isArray(value)) return parseVersion(value);
-    }
-    return null;
+  // Real shape: { current: {version, body, signed_at, signed_by, ...} | null, draft: {version, body, ...} | null }.
+  const section = (key: string, status: string): NoteVersion | null => {
+    const value = n[key];
+    return typeof value === "object" && value !== null && !Array.isArray(value) ? parseVersion(value, status) : null;
   };
-  if (!signed) signed = pick("signed", "signed_version", "current_version", "current");
-  if (!draft) draft = pick("draft", "draft_version", "own_draft");
-  if (signed && signed.status === "draft" && !draft) {
-    draft = signed;
-    signed = null;
-  }
+  let signed: NoteVersion | null = section("current", "signed");
+  let draft: NoteVersion | null = section("draft", "draft");
+
+  // Older or unexpected shapes: a list of versions, or the note itself carrying a body.
+  const versions = list(n.versions).map((v) => parseVersion(v));
+  if (!signed) signed = versions.filter((v) => v.status === "signed").slice(-1)[0] ?? null;
+  if (!draft) draft = versions.find((v) => v.status === "draft") ?? null;
   if (!signed && !draft && "body" in n) {
     const self = parseVersion(n);
     if (self.status === "draft") draft = self;
-    else signed = self;
+    else signed = { ...self, status: self.status || "signed" };
   }
 
   return { id: str(n.id), noteType: str(n.note_type) || str(n.type), signed, draft };
@@ -124,7 +126,7 @@ export function parseEncounter(body: unknown): EncounterDetail {
     patientMrn: str(patient.mrn) || str(e.patient_mrn),
     practitionerName: nameOf(practitioner) || str(e.practitioner_name),
     appointmentId: str(e.appointment_id) || str(rec(e.appointment).id),
-    vitals: firstList(e, ["vital_signs", "vitals", "observations"]).map(parseVital),
+    vitals: firstList(e, ["observations", "vital_signs", "vitals"]).map(parseVital),
     notes: list(e.notes).map(parseNote),
     diagnoses: list(e.diagnoses).map(parseDiagnosis),
   };
@@ -148,5 +150,5 @@ export function parseEncounterList(body: unknown): { items: EncounterRow[] } & P
 }
 
 export function parseVersions(body: unknown): NoteVersion[] {
-  return list(rec(body).data).map(parseVersion);
+  return list(rec(body).data).map((raw) => parseVersion(raw));
 }

@@ -3,24 +3,21 @@ import { groupLines } from "./bill-groups";
 import type { InvoiceLine } from "./parse";
 
 const line = (patch: Partial<InvoiceLine>): InvoiceLine => ({
-  serviceId: "", code: "", category: "", description: "x", quantity: "1", unitPrice: "1.00", discount: "", taxPercent: "", taxAmount: "", total: "1.00", ...patch,
+  serviceId: "", code: "", category: "other", description: "x", quantity: "1", unitPrice: "1.00", discount: "", taxPercent: "", taxAmount: "", total: "1.00", addedAt: null, ...patch,
 });
 
 describe("groupLines", () => {
-  it("groups by the category of the price-list service, in a fixed order", () => {
-    const index = { s1: { code: "BED1", category: "bed" }, s2: { code: "C1", category: "consultation" } };
-    const groups = groupLines([line({ serviceId: "s1" }), line({ serviceId: "s2" })], index);
+  it("groups by the server's category in a fixed order and keeps the server's subtotal", () => {
+    const groups = groupLines(
+      [line({ category: "bed" }), line({ category: "consultation" })],
+      [{ category: "consultation", amount: "500.00" }, { category: "bed", amount: "200.00" }],
+    );
     expect(groups.map((g) => g.label)).toEqual(["Consultation charges", "Room/Bed charges"]);
-    expect(groups[1].lines[0].code).toBe("BED1");
+    expect(groups.map((g) => g.subtotal)).toEqual(["500.00", "200.00"]);
   });
-  it("puts a line without a known category under Other charges", () => {
-    const groups = groupLines([line({ description: "Dressing" })], {});
+  it("puts an unknown category under Other charges and shows no subtotal when the server sent none", () => {
+    const groups = groupLines([line({ category: "weird" })], []);
     expect(groups).toHaveLength(1);
-    expect(groups[0].label).toBe("Other charges");
-  });
-  it("prefers what the line itself says", () => {
-    const groups = groupLines([line({ serviceId: "s1", category: "procedure", code: "P9" })], { s1: { code: "BED1", category: "bed" } });
-    expect(groups[0].label).toBe("Procedure charges");
-    expect(groups[0].lines[0].code).toBe("P9");
+    expect(groups[0]).toMatchObject({ label: "Other charges", subtotal: "" });
   });
 });

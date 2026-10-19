@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from "react";
 import clsx from "clsx";
 import { format12h, from12h, to12h, type Meridiem } from "@/lib/time-input";
 import { describedBy, FieldShell } from "./field-shell";
@@ -22,6 +22,14 @@ const HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MERIDIEMS: Meridiem[] = ["AM", "PM"];
 const FIRST = { hour: 9, minute: 0, meridiem: "AM" as Meridiem }; // what an empty field starts from
 const pad = (n: number) => String(n).padStart(2, "0");
+
+/** 0, 5, 10 ... 55. An odd minute that came from the server is kept in the list. Builds a new list every time. */
+function minuteChoices(minuteStep: number, current: number): number[] {
+  const list: number[] = [];
+  for (let m = 0; m < 60; m += minuteStep) list.push(m);
+  const withCurrent = current >= 0 && !list.includes(current) ? [...list, current] : list;
+  return [...withCurrent].sort((a, b) => a - b);
+}
 
 function ClockIcon() {
   return (
@@ -103,14 +111,7 @@ export function TimeField({ label, value, onChange, onBlur, error, hint, id, min
 
   const parts = to12h(value);
   const text = format12h(value);
-  const currentMinute = parts?.minute ?? -1;
-
-  const minutes = useMemo(() => {
-    const list: number[] = [];
-    for (let m = 0; m < 60; m += minuteStep) list.push(m);
-    if (currentMinute >= 0 && !list.includes(currentMinute)) list.push(currentMinute); // keep an odd minute from the server
-    return list.sort((a, b) => a - b);
-  }, [minuteStep, currentMinute]);
+  const minutes = minuteChoices(minuteStep, parts?.minute ?? -1);
 
   function close(returnFocus: boolean) {
     setOpen(false);
@@ -169,10 +170,10 @@ export function TimeField({ label, value, onChange, onBlur, error, hint, id, min
           type="button"
           aria-haspopup="dialog"
           aria-expanded={open}
-          aria-invalid={error ? true : undefined}
+          data-invalid={error ? "true" : undefined}
           aria-describedby={describedBy(fieldId, { error, hint })}
           onClick={() => (open ? close(false) : setOpen(true))}
-          className="flex h-10 w-full items-center gap-2 border border-ink bg-surface pl-3 pr-14 text-left text-sm text-ink hover:border-primary aria-[invalid=true]:border-2 aria-[invalid=true]:border-error"
+          className="flex h-10 w-full items-center gap-2 border border-ink bg-surface pl-3 pr-14 text-left text-sm text-ink hover:border-primary data-[invalid=true]:border-2 data-[invalid=true]:border-error"
         >
           <ClockIcon />
           <span className={text ? "text-ink" : "text-muted"}>{text || "--:-- --"}</span>
@@ -186,7 +187,7 @@ export function TimeField({ label, value, onChange, onBlur, error, hint, id, min
               onClick={clear}
               className="pointer-events-auto flex h-10 w-8 items-center justify-center text-lg leading-none text-ink hover:text-primary"
             >
-              ×
+              &times;
             </button>
           ) : null}
           <span className="pr-3 text-ink">

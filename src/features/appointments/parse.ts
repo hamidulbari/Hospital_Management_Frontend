@@ -88,15 +88,17 @@ export function parseAppointmentList(body: unknown, timezone: string | null): { 
   return { items, ...parsePage(body, items.length) };
 }
 
+/** A queue token has no id of its own: it is told apart by the appointment it belongs to (or its number). */
 export function parseQueue(body: unknown): QueueItem[] {
   return list(rec(body).data).map((raw) => {
     const q = rec(raw);
     const appointment = rec(q.appointment);
     const patient = rec(q.patient ?? appointment.patient);
     const practitioner = rec(q.practitioner ?? appointment.practitioner);
+    const token = tokenOf(q);
     return {
-      id: str(q.id),
-      token: tokenOf(q),
+      id: str(q.id) || str(q.appointment_id) || str(appointment.id) || (token ? `token-${token}` : ""),
+      token,
       status: str(q.status),
       patientName: nameOf(patient) || str(q.patient_name),
       patientMrn: str(patient.mrn) || str(q.patient_mrn),

@@ -1,8 +1,6 @@
 import { SEX_OPTIONS, labelFor } from "@/features/patients/options";
-import { formatAge } from "@/lib/age";
 import { showInstant } from "@/lib/format-instant";
-import type { HospitalContext } from "@/lib/hospital";
-import { groupLines, type ServiceIndex } from "./bill-groups";
+import { groupLines } from "./bill-groups";
 import { HospitalBlock } from "./hospital-block";
 import { fmt, isZeroMoney, type MoneyFormat } from "./money-format";
 import { amountInWords } from "./numbers-to-words";
@@ -11,11 +9,8 @@ import type { InvoiceDetail } from "./parse";
 
 type Props = {
   invoice: InvoiceDetail;
-  hospital: HospitalContext | null;
-  serviceIndex: ServiceIndex;
   moneyFormat: MoneyFormat;
   timezone: string | null;
-  today: string;
   printedBy: string;
   printedAt: string;
 };
@@ -31,15 +26,17 @@ function Info({ label, value }: { label: string; value: string }) {
   ) : null;
 }
 
-/** The A4 paper version of a bill. Every amount is the server's. Nothing is added up here. */
-export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, timezone, today, printedBy, printedAt }: Props) {
+/** The A4 paper version of a bill. Every amount, subtotal and tax figure is the server's. Nothing is added up here. */
+export function InvoiceSheet({ invoice, moneyFormat, timezone, printedBy, printedAt }: Props) {
   const draft = invoice.status === "draft";
   const cancelled = invoice.status === "cancelled";
-  const groups = groupLines(invoice.lines, serviceIndex);
+  const groups = groupLines(invoice.lines, invoice.groupTotals);
   const cellFormat: MoneyFormat = { ...moneyFormat, currency: undefined };
-  const age = invoice.patientDob ? formatAge(invoice.patientDob, today) : "";
+  const currency = invoice.currency || moneyFormat.currency;
   const sex = invoice.patientSex ? labelFor(SEX_OPTIONS, invoice.patientSex) : "";
-  const paidWords = invoice.paid ? amountInWords(invoice.paid, moneyFormat.currency) : "";
+  const age = invoice.patientAgeYears !== null ? `${invoice.patientAgeYears} years${invoice.patientDobEstimated ? " (estimated)" : ""}` : "";
+  const paidWords = invoice.paid ? amountInWords(invoice.paid, currency) : "";
+  const date = showInstant(invoice.issuedAt ?? invoice.createdAt, timezone);
 
   const totals = [
     { label: "Subtotal", value: invoice.subtotal },
@@ -52,7 +49,7 @@ export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, tim
 
   return (
     <div className="text-[9pt] leading-snug text-ink">
-      <HospitalBlock hospital={hospital} />
+      <HospitalBlock hospital={invoice.hospital} />
       <hr className="my-3 border-ink" />
 
       <section className="grid grid-cols-2 gap-8">
@@ -63,24 +60,26 @@ export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, tim
           <Info label="Contact" value={invoice.patientPhone} />
         </div>
         <div className="flex flex-col gap-0.5">
-          <Info label="Date" value={showInstant(invoice.issuedAt, timezone)} />
+          <Info label="Date" value={date} />
           <Info label="Invoice No." value={invoice.number} />
           <Info label="Status" value={draft ? "Not issued" : labelFor(INVOICE_STATUS_OPTIONS, invoice.status)} />
+          <Info label="Consulting doctor" value={invoice.consultants.join(", ")} />
         </div>
       </section>
       <hr className="my-3 border-ink" />
 
       <p className="text-center font-headline text-[11pt] font-bold uppercase tracking-widest">
         {draft ? "Provisional bill" : "Bill"}
-        {cancelled ? <span className="text-error"> — Cancelled</span> : null}
+        {cancelled ? <span className="text-error"> &mdash; Cancelled</span> : null}
       </p>
-      {moneyFormat.currency ? <p className="mt-1 text-center text-[8pt] text-muted">All amounts in {moneyFormat.currency}</p> : null}
+      {currency ? <p className="mt-1 text-center text-[8pt] text-muted">All amounts in {currency}</p> : null}
 
       <p className="mt-5 border-b border-ink pb-1 text-center font-headline text-[9pt] font-bold uppercase tracking-widest">Detailed breakup</p>
       <table className="w-full">
         <thead>
           <tr className="border-b border-ink">
-            <th scope="col" className={`${th} w-[18mm] pr-2 text-left`}>Code</th>
+            <th scope="col" className={`${th} w-[16mm] pr-2 text-left`}>Code</th>
+            <th scope="col" className={`${th} w-[28mm] pr-2 text-left`}>Date &amp; time</th>
             <th scope="col" className={`${th} pr-2 text-left`}>Particulars</th>
             <th scope="col" className={`${th} pl-2 text-right`}>Rate</th>
             <th scope="col" className={`${th} pl-2 text-right`}>Units</th>
@@ -92,28 +91,33 @@ export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, tim
         {groups.length === 0 ? (
           <tbody>
             <tr>
-              <td colSpan={7} className="py-3 text-muted">No lines.</td>
+              <td colSpan={8} className="py-3 text-muted">No lines.</td>
             </tr>
           </tbody>
         ) : (
           groups.map((group) => (
             <tbody key={group.key}>
               <tr>
-                <td colSpan={7} className="pb-1 pt-3 font-headline text-[9pt] font-bold">{group.label}</td>
+                <td colSpan={8} className="pb-1 pt-3 font-headline text-[9pt] font-bold">{group.label}</td>
               </tr>
               {group.lines.map((line, index) => (
                 <tr key={index}>
-                  <td className={`${td} pr-2`}>{line.code || "—"}</td>
-                  <td className={`${td} pr-2`}>{line.description || "—"}</td>
+                  <td className={`${td} pr-2`}>{line.code || "\u2014"}</td>
+                  <td className={`${td} whitespace-nowrap pr-2 text-[8pt]`}>{showInstant(line.addedAt, timezone) || "\u2014"}</td>
+                  <td className={`${td} pr-2`}>{line.description || "\u2014"}</td>
                   <td className={`${td} pl-2 text-right tabular-nums`}>{fmt(line.unitPrice, cellFormat)}</td>
-                  <td className={`${td} pl-2 text-right tabular-nums`}>{line.quantity || "—"}</td>
-                  <td className={`${td} pl-2 text-right tabular-nums`}>
-                    {line.discount && !isZeroMoney(line.discount) ? fmt(line.discount, cellFormat) : "—"}
-                  </td>
-                  <td className={`${td} pl-2 text-right tabular-nums`}>{line.taxPercent || "—"}</td>
+                  <td className={`${td} pl-2 text-right tabular-nums`}>{line.quantity || "\u2014"}</td>
+                  <td className={`${td} pl-2 text-right tabular-nums`}>{line.discount && !isZeroMoney(line.discount) ? fmt(line.discount, cellFormat) : "\u2014"}</td>
+                  <td className={`${td} pl-2 text-right tabular-nums`}>{line.taxPercent && !isZeroMoney(line.taxPercent) ? line.taxPercent : "\u2014"}</td>
                   <td className={`${td} pl-2 text-right font-semibold tabular-nums`}>{fmt(line.total, cellFormat)}</td>
                 </tr>
               ))}
+              {group.subtotal ? (
+                <tr>
+                  <td colSpan={7} className="pt-1.5 text-right text-[8.5pt] font-semibold">Subtotal</td>
+                  <td className="pl-2 pt-1.5 text-right text-[8.5pt] font-semibold tabular-nums">{fmt(group.subtotal, cellFormat)}</td>
+                </tr>
+              ) : null}
             </tbody>
           ))
         )}
@@ -140,6 +144,32 @@ export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, tim
         </p>
       ) : null}
 
+      {invoice.taxSummary.length > 0 ? (
+        <section className="mt-7">
+          <p className="border-b border-ink pb-1 text-center font-headline text-[9pt] font-bold uppercase tracking-widest">Tax summary</p>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-ink">
+                <th scope="col" className={`${th} pr-2 text-left`}>Tax %</th>
+                <th scope="col" className={`${th} pl-2 text-right`}>Taxable value</th>
+                <th scope="col" className={`${th} pl-2 text-right`}>Tax</th>
+                <th scope="col" className={`${th} pl-2 text-right`}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.taxSummary.map((row, index) => (
+                <tr key={index}>
+                  <td className={`${td} pr-2`}>{row.percent}%</td>
+                  <td className={`${td} pl-2 text-right tabular-nums`}>{fmt(row.taxable, cellFormat)}</td>
+                  <td className={`${td} pl-2 text-right tabular-nums`}>{fmt(row.tax, cellFormat)}</td>
+                  <td className={`${td} pl-2 text-right font-semibold tabular-nums`}>{fmt(row.total, cellFormat)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
+
       {invoice.payments.length > 0 ? (
         <section className="mt-7">
           <p className="border-b border-ink pb-1 text-center font-headline text-[9pt] font-bold uppercase tracking-widest">Payments</p>
@@ -159,10 +189,10 @@ export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, tim
                 const reversed = payment.status === "reversed";
                 return (
                   <tr key={payment.id || index}>
-                    <td className={`${td} pr-2 font-semibold`}>{payment.receipt || "—"}</td>
-                    <td className={`${td} pr-2`}>{showInstant(payment.at, timezone) || "—"}</td>
-                    <td className={`${td} pr-2`}>{payment.method ? labelFor(PAYMENT_METHOD_OPTIONS, payment.method) : "—"}</td>
-                    <td className={`${td} pr-2`}>{payment.reference || "—"}</td>
+                    <td className={`${td} pr-2 font-semibold`}>{payment.receipt || "\u2014"}</td>
+                    <td className={`${td} pr-2`}>{showInstant(payment.at, timezone) || "\u2014"}</td>
+                    <td className={`${td} pr-2`}>{payment.method ? labelFor(PAYMENT_METHOD_OPTIONS, payment.method) : "\u2014"}</td>
+                    <td className={`${td} pr-2`}>{payment.reference || "\u2014"}</td>
                     <td className={`${td} pl-2 text-right tabular-nums ${reversed ? "text-muted line-through" : "font-semibold"}`}>
                       {fmt(payment.amount, cellFormat)}
                     </td>
@@ -180,9 +210,12 @@ export function InvoiceSheet({ invoice, hospital, serviceIndex, moneyFormat, tim
         <div className="w-[60mm] border-t border-ink pt-1 text-right">Authorised signatory</div>
       </div>
 
-      <footer className="mt-6 flex justify-between gap-6 text-[7.5pt] text-muted">
-        <span>Printed by {printedBy}, {printedAt}</span>
-        <span>{hospital?.name || "HMS"}</span>
+      <footer className="mt-6 flex flex-col gap-1 text-[7.5pt] text-muted">
+        <span>This is a bill, not a GST tax invoice.</span>
+        <span className="flex justify-between gap-6">
+          <span>Printed by {printedBy}, {printedAt}</span>
+          <span>{invoice.hospital.name || "HMS"}</span>
+        </span>
       </footer>
     </div>
   );

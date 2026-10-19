@@ -1,30 +1,24 @@
 import "server-only";
 import { cache } from "react";
 import { apiLoad } from "@/lib/api/load";
+import { getSession } from "@/lib/auth/session";
 import { localTodayIso } from "@/lib/calendar";
 import { localParts } from "@/lib/datetime";
 import { list, rec, str } from "@/lib/utils/guards";
 
-export type HospitalContext = {
-  name: string;
-  timezone: string;
-  currencyCode: string;
-  registrationNo: string;
-  gstin: string;
-  phone: string;
-  email: string;
-  addressLines: string[];
-};
+export type HospitalContext = { name: string; timezone: string; currencyCode: string; dateFormat: string; locale: string };
 
-function addressLinesOf(value: unknown): string[] {
-  const a = rec(value);
-  const place = [str(a.city), str(a.state)].filter(Boolean).join(", ");
-  const last = [place, str(a.pincode)].filter(Boolean).join(" - ");
-  return [str(a.line1), str(a.line2), last].filter(Boolean);
-}
-
-/** From GET /organization/hospitals (real shape confirmed). Users without organization.hospital.view get null. */
+/**
+ * The hospital of the signed-in user. It comes from GET /identity/me (no extra permission needed).
+ * Only a group-level user, who has no hospital there, falls back to the hospital list (needs organization.hospital.view).
+ */
 export const getHospital = cache(async (): Promise<HospitalContext | null> => {
+  const session = await getSession();
+  const fromMe = session?.hospital;
+  if (fromMe) {
+    return { name: fromMe.name, timezone: fromMe.timezone, currencyCode: fromMe.currencyCode, dateFormat: fromMe.dateFormat, locale: fromMe.locale };
+  }
+
   const result = await apiLoad<unknown>("/organization/hospitals", { query: { per_page: 1 } });
   if (!result.ok) return null;
   const first = rec(list(rec(result.data).data)[0]);
@@ -34,15 +28,12 @@ export const getHospital = cache(async (): Promise<HospitalContext | null> => {
     name: str(first.name),
     timezone,
     currencyCode: str(first.currency_code),
-    registrationNo: str(first.registration_no),
-    gstin: str(first.gstin),
-    phone: str(first.phone),
-    email: str(first.email),
-    addressLines: addressLinesOf(first.address),
+    dateFormat: str(first.date_format),
+    locale: str(first.default_locale),
   };
 });
 
-/** Today and the time now in the hospital's timezone. Falls back to this computer's clock when the profile is not readable. */
+/** Today and the time now in the hospital's timezone. Falls back to this computer's clock when there is no hospital. */
 export async function hospitalNow(): Promise<{ today: string; time: string; timezone: string | null }> {
   const hospital = await getHospital();
   const parts = hospital ? localParts(new Date(), hospital.timezone) : null;

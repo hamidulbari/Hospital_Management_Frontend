@@ -43,6 +43,7 @@ export default async function PractitionerPage({ params }: { params: Promise<{ i
   const practitioner = parsePractitioner(result.data);
   const rules = rulesResult.ok ? parseRules(rulesResult.data) : [];
   const exceptions = exceptionsResult.ok ? parseExceptions(exceptionsResult.data) : [];
+  const login = practitioner.linkedUser ? `Login: ${practitioner.linkedUser}` : practitioner.userId ? "Login account linked" : "No login account linked";
 
   return (
     <>
@@ -51,11 +52,11 @@ export default async function PractitionerPage({ params }: { params: Promise<{ i
         description={[
           practitioner.type ? labelFor(PRACTITIONER_TYPE_OPTIONS, practitioner.type) : "",
           practitioner.departmentName,
-          practitioner.linkedUser ? `Login: ${practitioner.linkedUser}` : "",
+          login,
           practitioner.joinedOn ? `Joined ${formatLocalDate(practitioner.joinedOn)}` : "",
         ]
           .filter(Boolean)
-          .join(" · ")}
+          .join(" \u00b7 ")}
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge label={labelFor(PRACTITIONER_STATUS_OPTIONS, practitioner.status)} tone={practitionerTone(practitioner.status)} />
@@ -69,6 +70,9 @@ export default async function PractitionerPage({ params }: { params: Promise<{ i
         {!rulesResult.ok ? <ErrorNotice error={rulesResult.error} /> : null}
         {rulesResult.ok && rules.length === 0 && practitioner.status === "active" ? (
           <Notice>This practitioner has no working hours yet, so no free slots can be booked. Add them below.</Notice>
+        ) : null}
+        {practitioner.type === "doctor" && !practitioner.userId ? (
+          <Notice>This doctor has no login account linked, so they cannot start consultations. A login can only be linked when the profile is created.</Notice>
         ) : null}
 
         <Section title="Working hours">

@@ -23,6 +23,7 @@ type Props = {
   onChange: (slot: PickedSlot | null) => void;
   /** Change this number to reload the slots (after "slot_unavailable"). */
   reloadKey?: number;
+  /** A walk-in: today only, and the slot that is running now is listed too. */
   lockToToday?: boolean;
 };
 
@@ -51,7 +52,7 @@ export function SlotPicker({ practitionerId, timezone, today, value, onChange, r
   useEffect(() => {
     if (!ready) return;
     const id = ++requestId.current;
-    loadSlotsAction({ practitioner_id: practitionerId, from: fromDate, to: toDate, timezone }).then((response) => {
+    loadSlotsAction({ practitioner_id: practitionerId, from: fromDate, to: toDate, timezone, include_running: lockToToday }).then((response) => {
       if (id !== requestId.current) return; // an older request, ignore
       if (response.ok) {
         setLoaded({ key, days: response.data, error: null });
@@ -67,7 +68,7 @@ export function SlotPicker({ practitionerId, timezone, today, value, onChange, r
       }
       setLoaded({ key, days: [], error: response.error });
     });
-  }, [ready, practitionerId, fromDate, toDate, timezone, key]);
+  }, [ready, practitionerId, fromDate, toDate, timezone, key, lockToToday]);
 
   const current = loaded?.key === key ? loaded : null;
 
@@ -92,11 +93,11 @@ export function SlotPicker({ practitionerId, timezone, today, value, onChange, r
       ) : !validFrom ? (
         <p className="text-sm text-muted">Enter a valid date.</p>
       ) : loading ? (
-        <p role="status" className="text-sm text-muted">Loading slots…</p>
+        <p role="status" className="text-sm text-muted">Loading slots&hellip;</p>
       ) : current?.error ? (
         <ErrorNotice error={current.error} />
       ) : current && current.days.length === 0 ? (
-        <EmptyState title="No free slots" description="This doctor has no free slot in this range. Try other dates." />
+        <EmptyState title="No free slots" description="This doctor has no free slot in this range. Try other dates, or check the doctor's working hours in Administration." />
       ) : (
         <div className="flex flex-col gap-3">
           {current?.days.map((day) => (
@@ -115,7 +116,7 @@ export function SlotPicker({ practitionerId, timezone, today, value, onChange, r
                       onClick={() => onChange({ date: day.date, time })}
                       className={clsx(
                         "h-9 min-w-16 border px-3 text-sm font-semibold",
-                        selected ? "border-ink bg-ink text-white" : "border-ink bg-surface text-ink hover:border-primary hover:bg-accent",
+                        selected ? "border-section bg-section text-white" : "border-ink bg-surface text-ink hover:border-section hover:bg-section-soft",
                       )}
                     >
                       {formatLocalTime(time)}

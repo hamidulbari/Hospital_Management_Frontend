@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { TextareaField } from "@/components/ui/textarea-field";
 import { useToast } from "@/components/ui/toast-provider";
 import { formatLocalDate, formatLocalTime } from "@/lib/datetime";
 import { rescheduleAppointmentAction } from "./actions";
@@ -14,13 +15,14 @@ type Props = { item: AppointmentItem | null; today: string; timezone: string | n
 function RescheduleBody({ item, today, timezone, onClose, onDone }: Omit<Props, "item"> & { item: AppointmentItem }) {
   const toast = useToast();
   const [slot, setSlot] = useState<PickedSlot | null>(null);
+  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   async function confirm() {
     if (!slot) return;
     setBusy(true);
-    const response = await rescheduleAppointmentAction(item.id, slot);
+    const response = await rescheduleAppointmentAction(item.id, { ...slot, reason });
     setBusy(false);
 
     if (response.ok) {
@@ -45,6 +47,14 @@ function RescheduleBody({ item, today, timezone, onClose, onDone }: Omit<Props, 
         Now: {formatLocalDate(item.date)}, {formatLocalTime(item.time)} with {item.practitionerName || "the same doctor"}. Choose a new slot of the same doctor.
       </p>
       <SlotPicker practitionerId={item.practitionerId} timezone={timezone} today={today} value={slot} onChange={setSlot} reloadKey={reloadKey} />
+      <TextareaField
+        label="Reason"
+        value={reason}
+        onChange={setReason}
+        maxLength={100}
+        rows={2}
+        hint="Optional, up to 100 characters. It is kept with the appointment's history."
+      />
       <div className="flex justify-end gap-3">
         <Button variant="secondary" onClick={onClose} disabled={busy}>Close</Button>
         <Button onClick={confirm} loading={busy} disabled={!slot}>Reschedule</Button>

@@ -68,7 +68,7 @@ export default async function StatementPage({ params }: { params: Promise<{ pati
               <thead className="border-b border-ink font-headline text-xs uppercase tracking-wider">
                 <tr>
                   <th scope="col" className="p-3">Invoice</th>
-                  <th scope="col" className="p-3">Date</th>
+                  <th scope="col" className="p-3">Issued</th>
                   <th scope="col" className="p-3 text-right">Total</th>
                   <th scope="col" className="p-3 text-right">Paid</th>
                   <th scope="col" className="p-3 text-right">Balance</th>
@@ -77,15 +77,15 @@ export default async function StatementPage({ params }: { params: Promise<{ pati
               </thead>
               <tbody>
                 {statement.invoices.map((invoice, index) => (
-                  <tr key={invoice.id || index} className="border-b border-accent last:border-b-0 hover:bg-accent">
+                  <tr key={invoice.id || index} className="border-b border-accent last:border-b-0 hover:bg-section-soft">
                     <td className="p-3">
                       {invoice.id && can(session.permissions, "billing.invoice.view") ? (
-                        <Link href={`/billing/${invoice.id}`} prefetch={false} className="font-medium underline">{invoice.number || (invoice.status === "draft" ? "Draft" : "—")}</Link>
+                        <Link href={`/billing/${invoice.id}`} prefetch={false} className="font-medium underline">{invoice.number || "\u2014"}</Link>
                       ) : (
-                        <span className="font-medium">{invoice.number || "—"}</span>
+                        <span className="font-medium">{invoice.number || "\u2014"}</span>
                       )}
                     </td>
-                    <td className="p-3 text-muted">{showInstant(invoice.date, now.timezone) || "—"}</td>
+                    <td className="p-3 text-muted">{showInstant(invoice.date, now.timezone) || "\u2014"}</td>
                     <td className="p-3 text-right">{fmt(invoice.total, moneyFormat)}</td>
                     <td className="p-3 text-right">{fmt(invoice.paid, moneyFormat)}</td>
                     <td className="p-3 text-right font-medium">{fmt(invoice.balance, moneyFormat)}</td>
@@ -104,7 +104,7 @@ export default async function StatementPage({ params }: { params: Promise<{ pati
       <div className="hidden print:block">
         <StatementSheet
           statement={statement}
-          hospital={hospital}
+          hospitalName={hospital?.name || "HMS"}
           moneyFormat={moneyFormat}
           timezone={now.timezone}
           asOf={`${formatLocalDate(now.today)}, ${now.time}`}

@@ -14,6 +14,7 @@ export type CredentialItem = {
   issuedOn: string | null;
   expiresOn: string | null;
   status: string;
+  expired: boolean;
 };
 export type PractitionerDetail = {
   id: string;
@@ -22,6 +23,8 @@ export type PractitionerDetail = {
   status: string;
   departmentId: string;
   departmentName: string;
+  /** The profile carries only the id of its login account, not a name. */
+  userId: string;
   linkedUser: string;
   joinedOn: string | null;
   leftOn: string | null;
@@ -51,7 +54,8 @@ function parseCredential(raw: unknown): CredentialItem {
     issuingBody: str(c.issuing_body),
     issuedOn: strOrNull(c.issued_on),
     expiresOn: strOrNull(c.expires_on),
-    status: str(c.status) || str(c.verification_status),
+    status: str(c.verification_status) || str(c.status),
+    expired: bool(c.is_expired),
   };
 }
 
@@ -65,6 +69,7 @@ export function parsePractitioner(body: unknown): PractitionerDetail {
     status: str(p.status),
     departmentId: str(p.primary_department_id) || str(department.id),
     departmentName: nameOf(department),
+    userId: str(p.user_id) || str(rec(p.user).id),
     linkedUser: nameOf(p.user) || str(rec(p.user).email),
     joinedOn: strOrNull(p.joined_on),
     leftOn: strOrNull(p.left_on),

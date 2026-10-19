@@ -1,8 +1,11 @@
-import { Notice } from "@/components/ui/notice";
+import { ErrorNotice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
-import { loadDashboardData } from "@/features/dashboard/data";
+import { APPOINTMENT_STATUS_OPTIONS } from "@/features/appointments/options";
+import { INVOICE_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS } from "@/features/billing/options";
+import { loadDashboard } from "@/features/dashboard/server";
 import { QuickActions } from "@/features/dashboard/quick-actions";
-import { BarList, ColumnChart, KpiCard, Panel, SampleBadge, type Tone } from "@/features/dashboard/widgets";
+import { BarList, ColumnChart, KpiCard, Panel, type Tone } from "@/features/dashboard/widgets";
+import { labelFor } from "@/features/patients/options";
 import { requireSession } from "@/lib/auth/session";
 import { weekdayName } from "@/lib/calendar";
 import { formatLocalDate } from "@/lib/datetime";
@@ -19,28 +22,58 @@ function greeting(time: string): string {
 
 // The same status has the same colour everywhere on this screen. The label always says what it is.
 const STATUS_TONES: Record<string, Tone> = {
-  Booked: "sky",
-  "Checked in": "teal",
-  "In consultation": "violet",
-  Completed: "emerald",
-  Cancelled: "red",
-  "No-show": "amber",
+  booked: "sky",
+  checked_in: "teal",
+  in_consultation: "violet",
+  completed: "emerald",
+  cancelled: "red",
+  no_show: "amber",
 };
-const METHOD_TONES: Record<string, Tone> = { Cash: "emerald", UPI: "violet", Card: "sky" };
+const METHOD_TONES: Record<string, Tone> = { cash: "emerald", upi: "violet", card: "sky" };
 const DOCTOR_TONES: Tone[] = ["teal", "sky", "violet", "pink", "amber"];
+
+function CountBoxes({ items }: { items: { label: string; value: number }[] }) {
+  return (
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {items.map((item) => (
+        <li key={item.label} className="border border-ink bg-section-soft p-3">
+          <p className="font-headline text-2xl font-bold text-ink">{item.value}</p>
+          <p className="text-xs text-muted">{item.label}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default async function DashboardPage() {
   const session = await requireSession();
   const [now, hospital] = await Promise.all([hospitalNow(), getHospital()]);
 
-  const showAppointments = can(session.permissions, "appointment.view");
-  const showBilling = can(session.permissions, "billing.invoice.view");
-  const data = showAppointments || showBilling ? await loadDashboardData(now.today) : null;
+  const result = can(session.permissions, "dashboard.view") ? await loadDashboard() : null;
+  const data = result && result.ok ? result.data : null;
 
-  const currency = hospital?.currencyCode || undefined;
+  const currency = data?.currency || hospital?.currencyCode || undefined;
   const grouping = currency === "INR" ? "indian" : "international";
-  const money = (amount: string) => formatMoney(amount, { currency, grouping });
+  const money = (amount: string) => (amount ? formatMoney(amount, { currency, grouping }) : "\u2014");
   const firstName = session.name.split(" ")[0] || session.name;
+  const today = data?.date || now.today;
+
+  const a = data?.appointments ?? null;
+  const q = data?.queue ?? null;
+  const c = data?.clinical ?? null;
+  const b = data?.billing ?? null;
+  const p = data?.patients ?? null;
+
+  const kpis: { label: string; value: string; caption: string; tone: Tone }[] = [];
+  if (a) kpis.push({ label: "Appointments today", value: String(a.total), caption: "Cancelled ones are not counted", tone: "sky" });
+  if (q) kpis.push({ label: "In OPD queue", value: String(q.waiting + q.inConsultation), caption: "Waiting or with a doctor", tone: "violet" });
+  if (a) kpis.push({ label: "Completed", value: String(a.byStatus.find((s) => s.status === "completed")?.count ?? 0), caption: "Appointments finished today", tone: "teal" });
+  if (p) kpis.push({ label: "Registered today", value: String(p.registeredToday), caption: "New patients", tone: "pink" });
+  if (c) kpis.push({ label: "Open encounters", value: String(c.openNow), caption: "Consultations in progress", tone: "violet" });
+  if (b) kpis.push({ label: "Collected today", value: money(b.collectedToday), caption: "Payments recorded today", tone: "amber" });
+  if (b) kpis.push({ label: "Outstanding", value: money(b.outstanding), caption: "Unpaid on issued invoices", tone: "red" });
+
+  const allShares = b !== null && b.byMethod.length > 0 && b.byMethod.every((row) => row.share !== null);
 
   return (
     <div className="flex flex-col gap-8">
@@ -51,87 +84,115 @@ export default async function DashboardPage() {
 
       <QuickActions permissions={session.permissions} />
 
-      {data?.isSample ? (
-        <Notice>
-          <p className="font-medium">Design preview</p>
-          <p className="mt-1">
-            The figures below are sample data, not from the hospital. They will show real numbers once the summary is connected.
-          </p>
-        </Notice>
-      ) : null}
+      {result && !result.ok ? <ErrorNotice error={result.error} /> : null}
 
-      {data && showAppointments ? (
+      {kpis.length > 0 ? (
         <section aria-label="Today at a glance">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="font-headline text-xs font-semibold uppercase tracking-wider text-muted">Today at a glance</h2>
-            {data.isSample ? <SampleBadge /> : null}
-          </div>
+          <h2 className="mb-3 font-headline text-xs font-semibold uppercase tracking-wider text-muted">Today at a glance</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard tone="sky" label="Appointments today" value={String(data.kpis.appointmentsToday)} caption="All statuses" />
-            <KpiCard tone="violet" label="In OPD queue" value={String(data.kpis.inQueue)} caption="Waiting or with a doctor" />
-            <KpiCard tone="teal" label="Completed" value={String(data.kpis.completedToday)} caption="Consultations finished" />
-            {showBilling ? (
-              <KpiCard tone="amber" label="Collected today" value={money(data.kpis.collectedToday)} caption="Payments recorded today" />
-            ) : null}
+            {kpis.map((kpi) => (
+              <KpiCard key={kpi.label} tone={kpi.tone} label={kpi.label} value={kpi.value} caption={kpi.caption} />
+            ))}
           </div>
         </section>
       ) : null}
 
-      {data && showAppointments ? (
+      {data ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <Panel title="Appointments, last 7 days" sample={data.isSample} tone="sky" className="lg:col-span-8">
-            <ColumnChart columns={data.weekly} />
-          </Panel>
-          <Panel title="Today by status" sample={data.isSample} tone="violet" className="lg:col-span-4">
-            <BarList rows={data.statusBreakdown.map((row) => ({ ...row, tone: STATUS_TONES[row.label] ?? "ink" }))} />
-          </Panel>
-
-          <Panel title="Coming up" sample={data.isSample} tone="teal" className="lg:col-span-7">
-            <ul>
-              {data.upcoming.map((item) => (
-                <li key={`${item.time}-${item.patient}`} className="flex items-center gap-4 border-b border-accent py-3 first:pt-0 last:border-b-0 last:pb-0">
-                  <span className="w-14 font-headline text-lg font-bold text-ink">{item.time}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink">{item.patient}</span>
-                    <span className="block truncate text-xs text-muted">{item.doctor}</span>
-                  </span>
-                  <span className="text-xs text-muted">{item.type}</span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-          <Panel title="OPD queue" sample={data.isSample} tone="violet" className="lg:col-span-5">
-            <ul>
-              {data.queue.map((item) => (
-                <li key={item.token} className="flex items-center gap-4 border-b border-accent py-3 first:pt-0 last:border-b-0 last:pb-0">
-                  <span className="w-12 font-headline text-3xl font-bold leading-none text-violet-700">{item.token}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-ink">{item.patient}</span>
-                  <span className="text-xs text-muted">{item.status}</span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="Doctor load today" sample={data.isSample} tone="pink" className={showBilling ? "lg:col-span-6" : "lg:col-span-12"}>
-            <BarList rows={data.doctorLoad.map((row, index) => ({ ...row, tone: DOCTOR_TONES[index % DOCTOR_TONES.length] }))} />
-          </Panel>
-
-          {showBilling ? (
-            <Panel title="Collection by method" sample={data.isSample} tone="amber" className="lg:col-span-6">
-              <BarList
-                rows={data.collectedByMethod.map((row) => ({
-                  label: row.label,
-                  value: row.share,
-                  display: money(row.amount),
-                  tone: METHOD_TONES[row.label] ?? "ink",
+          {a && a.last7.length > 0 ? (
+            <Panel title="Appointments, last 7 days" tone="sky" className="lg:col-span-8">
+              <ColumnChart
+                columns={a.last7.map((day, index, all) => ({
+                  label: weekdayName(day.date).slice(0, 3),
+                  value: day.count,
+                  highlight: index === all.length - 1,
                 }))}
               />
-              <p className="mb-2 mt-6 font-headline text-xs font-semibold uppercase tracking-wider text-muted">Invoices today</p>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {data.invoiceCounts.map((item) => (
-                  <li key={item.label} className="border border-ink bg-section-soft p-3">
-                    <p className="font-headline text-2xl font-bold text-ink">{item.value}</p>
-                    <p className="text-xs text-muted">{item.label}</p>
+            </Panel>
+          ) : null}
+          {a ? (
+            <Panel title="Today by status" tone="violet" className="lg:col-span-4">
+              <BarList
+                rows={a.byStatus.map((row) => ({
+                  label: labelFor(APPOINTMENT_STATUS_OPTIONS, row.status),
+                  value: row.count,
+                  tone: STATUS_TONES[row.status] ?? "ink",
+                }))}
+              />
+            </Panel>
+          ) : null}
+
+          {q ? (
+            <Panel title="OPD queue today" tone="violet" className="lg:col-span-6">
+              <CountBoxes
+                items={[
+                  { label: "Waiting", value: q.waiting },
+                  { label: "With a doctor", value: q.inConsultation },
+                  { label: "Completed", value: q.completed },
+                  { label: "Skipped", value: q.skipped },
+                ]}
+              />
+            </Panel>
+          ) : null}
+          {c ? (
+            <Panel title="Consultations today" tone="teal" className="lg:col-span-6">
+              <CountBoxes
+                items={[
+                  { label: "Opened today", value: c.opened },
+                  { label: "Finished today", value: c.finished },
+                  { label: "Open now", value: c.openNow },
+                ]}
+              />
+            </Panel>
+          ) : null}
+
+          {a && a.byPractitioner.length > 0 ? (
+            <Panel title="Doctor load today" tone="pink" className="lg:col-span-6">
+              <BarList rows={a.byPractitioner.map((row, index) => ({ label: row.name || "\u2014", value: row.count, tone: DOCTOR_TONES[index % DOCTOR_TONES.length] }))} />
+            </Panel>
+          ) : null}
+
+          {b ? (
+            <Panel title="Collection by method" tone="amber" className="lg:col-span-6">
+              {b.byMethod.length === 0 ? (
+                <p className="text-sm text-muted">Nothing collected today.</p>
+              ) : allShares ? (
+                <BarList
+                  rows={b.byMethod.map((row) => ({
+                    label: labelFor(PAYMENT_METHOD_OPTIONS, row.method),
+                    value: row.share ?? 0,
+                    display: money(row.amount),
+                    tone: METHOD_TONES[row.method] ?? "ink",
+                  }))}
+                />
+              ) : (
+                <ul>
+                  {b.byMethod.map((row) => (
+                    <li key={row.method} className="flex items-baseline justify-between gap-3 border-b border-accent py-2 text-sm first:pt-0 last:border-b-0 last:pb-0">
+                      <span className="text-ink">{labelFor(PAYMENT_METHOD_OPTIONS, row.method)}</span>
+                      <span className="font-headline font-bold text-ink">{money(row.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          ) : null}
+          {b ? (
+            <Panel title="Invoices today" tone="amber" className="lg:col-span-6">
+              {b.invoicesToday.length === 0 ? (
+                <p className="text-sm text-muted">No invoice was created today.</p>
+              ) : (
+                <CountBoxes items={b.invoicesToday.map((row) => ({ label: labelFor(INVOICE_STATUS_OPTIONS, row.status), value: row.count }))} />
+              )}
+            </Panel>
+          ) : null}
+          {b && b.last7.length > 0 ? (
+            <Panel title="Collected, last 7 days" tone="amber" className="lg:col-span-6">
+              <ul>
+                {b.last7.map((day) => (
+                  <li key={day.date} className="flex items-baseline justify-between gap-3 border-b border-accent py-2 text-sm first:pt-0 last:border-b-0 last:pb-0">
+                    <span className={day.date === today ? "font-semibold text-ink" : "text-muted"}>{weekdayName(day.date)}, {formatLocalDate(day.date)}</span>
+                    <span className="font-headline font-bold text-ink">{money(day.amount)}</span>
                   </li>
                 ))}
               </ul>

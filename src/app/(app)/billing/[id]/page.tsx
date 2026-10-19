@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PrintButton } from "@/components/ui/print-button";
 import { Section } from "@/components/ui/section";
 import { StatusBadge } from "@/components/ui/status-badge";
-import type { ServiceIndex } from "@/features/billing/bill-groups";
 import { CancelInvoice } from "@/features/billing/cancel-invoice";
 import { DraftTools } from "@/features/billing/draft-tools";
 import { InvoiceSheet } from "@/features/billing/invoice-sheet";
@@ -16,12 +15,12 @@ import { INVOICE_STATUS_OPTIONS, invoiceTone } from "@/features/billing/options"
 import { parseInvoice } from "@/features/billing/parse";
 import { PaymentForm } from "@/features/billing/payment-form";
 import { PaymentsList } from "@/features/billing/payments-list";
-import { loadMoneyFormat, loadServiceIndex, loadServiceOptions } from "@/features/billing/server";
+import { loadMoneyFormat, loadServiceOptions } from "@/features/billing/server";
 import { labelFor } from "@/features/patients/options";
 import { apiLoad } from "@/lib/api/load";
 import { requireSession } from "@/lib/auth/session";
 import { formatLocalDate } from "@/lib/datetime";
-import { getHospital, hospitalNow } from "@/lib/hospital";
+import { hospitalNow } from "@/lib/hospital";
 import { can } from "@/lib/permissions";
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,14 +30,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const p = session.permissions;
   if (!can(p, "billing.invoice.view")) return <NoAccess />;
 
-  const noIndex: Promise<ServiceIndex> = Promise.resolve({});
-  const [result, now, moneyFormat, hospital, serviceIndex] = await Promise.all([
-    apiLoad<unknown>(`/billing/invoices/${id}`),
-    hospitalNow(),
-    loadMoneyFormat(),
-    getHospital(),
-    can(p, "billing.service.view") ? loadServiceIndex() : noIndex,
-  ]);
+  const [result, now, moneyFormat] = await Promise.all([apiLoad<unknown>(`/billing/invoices/${id}`), hospitalNow(), loadMoneyFormat()]);
   if (!result.ok) {
     if (result.error.status === 404) notFound();
     if (result.error.status === 403) return <NoAccess />;
@@ -68,7 +60,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       <div className="print:hidden">
         <PageHeader
           title={screenTitle}
-          description={[invoice.patientName, invoice.patientMrn ? `MRN ${invoice.patientMrn}` : ""].filter(Boolean).join(" · ")}
+          description={[invoice.patientName, invoice.patientMrn ? `MRN ${invoice.patientMrn}` : ""].filter(Boolean).join(" \u00b7 ")}
           actions={
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge label={labelFor(INVOICE_STATUS_OPTIONS, invoice.status)} tone={invoiceTone(invoice.status)} />
@@ -104,11 +96,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                   <tbody>
                     {invoice.lines.map((line, index) => (
                       <tr key={index} className="border-b border-accent last:border-b-0">
-                        <td className="p-3">{line.description || "—"}</td>
-                        <td className="p-3 text-right">{line.quantity || "—"}</td>
+                        <td className="p-3">{line.description || "\u2014"}</td>
+                        <td className="p-3 text-right">{line.quantity || "\u2014"}</td>
                         <td className="p-3 text-right">{fmt(line.unitPrice, moneyFormat)}</td>
-                        <td className="p-3 text-right">{line.discount && !isZeroMoney(line.discount) ? fmt(line.discount, moneyFormat) : "—"}</td>
-                        <td className="p-3 text-right">{line.taxPercent || "—"}</td>
+                        <td className="p-3 text-right">{line.discount && !isZeroMoney(line.discount) ? fmt(line.discount, moneyFormat) : "\u2014"}</td>
+                        <td className="p-3 text-right">{line.taxPercent && !isZeroMoney(line.taxPercent) ? line.taxPercent : "\u2014"}</td>
                         <td className="p-3 text-right font-medium">{fmt(line.total, moneyFormat)}</td>
                       </tr>
                     ))}
@@ -170,11 +162,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       <div className="hidden print:block">
         <InvoiceSheet
           invoice={invoice}
-          hospital={hospital}
-          serviceIndex={serviceIndex}
           moneyFormat={moneyFormat}
           timezone={now.timezone}
-          today={now.today}
           printedBy={session.name}
           printedAt={`${formatLocalDate(now.today)}, ${now.time}`}
         />

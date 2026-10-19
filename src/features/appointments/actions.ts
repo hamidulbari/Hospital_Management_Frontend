@@ -14,7 +14,12 @@ export async function loadSlotsAction(input: unknown): Promise<ActionResult<Slot
 
   try {
     const body = await apiFetch<unknown>("/appointment-slots", {
-      query: { practitioner: parsed.data.practitioner_id, from: parsed.data.from, to: parsed.data.to },
+      query: {
+        practitioner: parsed.data.practitioner_id,
+        from: parsed.data.from,
+        to: parsed.data.to,
+        include_running: parsed.data.include_running ? true : undefined,
+      },
       redirectOn401: false,
     });
     return { ok: true, data: parseSlots(body, parsed.data.timezone ?? null) };
@@ -60,8 +65,13 @@ export async function rescheduleAppointmentAction(appointmentId: string, input: 
   if (!id.success) return invalidInput({}, "Unknown appointment.");
   if (!parsed.success) return invalidInput(fieldErrorsFromZod(parsed.error));
 
+  const { date, time, reason } = parsed.data;
   try {
-    await apiFetch(`/appointments/${id.data}/reschedule`, { method: "POST", body: parsed.data, redirectOn401: false });
+    await apiFetch(`/appointments/${id.data}/reschedule`, {
+      method: "POST",
+      body: reason ? { date, time, reason } : { date, time },
+      redirectOn401: false,
+    });
     return { ok: true, data: null };
   } catch (error) {
     return failure(error);

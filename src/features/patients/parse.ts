@@ -11,7 +11,7 @@ export type Patient = {
   sexAtBirth: string;
   dateOfBirth: string | null;
   estimatedAgeYears: number | null;
-  phone: string; // shown exactly as the API returns it (masked)
+  phone: string; // shown exactly as the API returns it (a list gives the masked number)
   email: string | null;
   bloodGroup: string | null;
   preferredLanguage: string | null;
@@ -46,7 +46,8 @@ export function parsePatient(raw: unknown): Patient {
     sexAtBirth: str(p.sex_at_birth),
     dateOfBirth: strOrNull(p.date_of_birth),
     estimatedAgeYears: num(p.estimated_age_years),
-    phone: str(p.phone),
+    // The detail has "phone"; the list has only "phone_masked".
+    phone: str(p.phone) || str(p.phone_masked),
     email: strOrNull(p.email),
     bloodGroup: strOrNull(p.blood_group),
     preferredLanguage: strOrNull(p.preferred_language),
@@ -62,7 +63,7 @@ export function parsePatient(raw: unknown): Patient {
     }),
     identifiers: list(p.identifiers).map((item) => {
       const i = rec(item);
-      return { type: str(i.id_type), value: str(i.value) };
+      return { type: str(i.type) || str(i.id_type), value: str(i.value_masked) || str(i.value) };
     }),
     consents: list(p.consents).map(parseConsent),
   };

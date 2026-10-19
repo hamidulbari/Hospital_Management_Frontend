@@ -7,8 +7,8 @@ import { ErrorNotice } from "@/components/ui/notice";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { UrlPagination } from "@/components/ui/url-pagination";
-import { AppointmentFilters } from "@/features/appointments/appointment-filters";
-import { readDayFilters } from "@/features/appointments/filters";
+import { readInvoiceFilters } from "@/features/billing/filters";
+import { InvoiceFilters } from "@/features/billing/invoice-filters";
 import { fmt } from "@/features/billing/money-format";
 import { INVOICE_STATUS_OPTIONS, invoiceTone } from "@/features/billing/options";
 import { parseInvoiceList } from "@/features/billing/parse";
@@ -33,7 +33,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   }
 
   const [now, moneyFormat] = await Promise.all([hospitalNow(), loadMoneyFormat()]);
-  const filters = readDayFilters(await searchParams, now.today, INVOICE_STATUS_OPTIONS.map((o) => o.value));
+  const filters = readInvoiceFilters(await searchParams, INVOICE_STATUS_OPTIONS.map((o) => o.value));
   const result = await apiLoad<unknown>("/billing/invoices", {
     query: { date: filters.date, status: filters.status, per_page: PAGE_SIZE, page: filters.page },
   });
@@ -43,22 +43,15 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader
         title="Invoices"
-        description={formatLocalDate(filters.date)}
+        description={filters.date ? `Created on ${formatLocalDate(filters.date)}` : "The newest invoices, newest first"}
         actions={can(p, "billing.invoice.create") ? <LinkButton href="/billing/new">New invoice</LinkButton> : undefined}
       />
-      <AppointmentFilters
-        basePath="/billing"
-        today={now.today}
-        date={filters.date}
-        practitioner=""
-        status={filters.status}
-        statusOptions={INVOICE_STATUS_OPTIONS}
-      />
+      <InvoiceFilters date={filters.date} status={filters.status} />
 
       {!result.ok ? (
         <ErrorNotice error={result.error} />
       ) : list && list.items.length === 0 ? (
-        <EmptyState title="No invoices" description="No invoice for this date and status. Change the filters, or create a new invoice." />
+        <EmptyState title="No invoices" description="Nothing matches these filters. Change them, or create a new invoice." />
       ) : list ? (
         <div className="flex flex-col gap-4">
           <div className="overflow-x-auto border border-ink bg-surface">
@@ -67,7 +60,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 <tr>
                   <th scope="col" className="p-3">Invoice</th>
                   <th scope="col" className="p-3">Patient</th>
-                  <th scope="col" className="p-3">Date</th>
+                  <th scope="col" className="p-3">Created</th>
                   <th scope="col" className="p-3 text-right">Total</th>
                   <th scope="col" className="p-3 text-right">Balance</th>
                   <th scope="col" className="p-3">Status</th>
@@ -75,18 +68,18 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
               </thead>
               <tbody>
                 {list.items.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-accent last:border-b-0 hover:bg-accent">
+                  <tr key={invoice.id} className="border-b border-accent last:border-b-0 hover:bg-section-soft">
                     <td className="p-3">
                       {/* prefetch off: opening an invoice is an audited read. */}
                       <Link href={`/billing/${invoice.id}`} prefetch={false} className="font-medium underline">
-                        {invoice.number || "Draft"}
+                        {invoice.number || (invoice.status === "draft" ? "Draft" : "\u2014")}
                       </Link>
                     </td>
                     <td className="p-3">
-                      <p className="font-medium">{invoice.patientName || "—"}</p>
-                      <p className="text-xs text-muted">MRN {invoice.patientMrn || "—"}</p>
+                      <p className="font-medium">{invoice.patientName || "\u2014"}</p>
+                      <p className="text-xs text-muted">MRN {invoice.patientMrn || "\u2014"}</p>
                     </td>
-                    <td className="p-3 text-muted">{showInstant(invoice.date, now.timezone) || "—"}</td>
+                    <td className="p-3 text-muted">{showInstant(invoice.date, now.timezone) || "\u2014"}</td>
                     <td className="p-3 text-right font-medium">{fmt(invoice.total, moneyFormat)}</td>
                     <td className="p-3 text-right">{fmt(invoice.balance, moneyFormat)}</td>
                     <td className="p-3">

@@ -1,6 +1,5 @@
 import { labelFor } from "@/features/patients/options";
 import { showInstant } from "@/lib/format-instant";
-import type { HospitalContext } from "@/lib/hospital";
 import { HospitalBlock } from "./hospital-block";
 import { fmt, type MoneyFormat } from "./money-format";
 import { INVOICE_STATUS_OPTIONS } from "./options";
@@ -8,7 +7,7 @@ import type { Statement } from "./parse";
 
 type Props = {
   statement: Statement;
-  hospital: HospitalContext | null;
+  hospitalName: string;
   moneyFormat: MoneyFormat;
   timezone: string | null;
   asOf: string;
@@ -26,13 +25,14 @@ function Info({ label, value }: { label: string; value: string }) {
   ) : null;
 }
 
-/** The A4 paper version of a patient statement. Amounts are the server's. */
-export function StatementSheet({ statement, hospital, moneyFormat, timezone, asOf, printedBy }: Props) {
+/** The A4 paper version of a patient statement. Amounts are the server's. The statement carries no hospital address. */
+export function StatementSheet({ statement, hospitalName, moneyFormat, timezone, asOf, printedBy }: Props) {
   const cellFormat: MoneyFormat = { ...moneyFormat, currency: undefined };
+  const currency = statement.currency || moneyFormat.currency;
 
   return (
     <div className="text-[9pt] leading-snug text-ink">
-      <HospitalBlock hospital={hospital} />
+      <HospitalBlock hospital={{ name: hospitalName }} />
       <hr className="my-3 border-ink" />
 
       <section className="grid grid-cols-2 gap-8">
@@ -47,7 +47,7 @@ export function StatementSheet({ statement, hospital, moneyFormat, timezone, asO
       <hr className="my-3 border-ink" />
 
       <p className="text-center font-headline text-[11pt] font-bold uppercase tracking-widest">Statement of account</p>
-      {moneyFormat.currency ? <p className="mt-1 text-center text-[8pt] text-muted">All amounts in {moneyFormat.currency}</p> : null}
+      {currency ? <p className="mt-1 text-center text-[8pt] text-muted">All amounts in {currency}</p> : null}
 
       <table className="mt-5 w-full">
         <thead>
@@ -68,8 +68,8 @@ export function StatementSheet({ statement, hospital, moneyFormat, timezone, asO
           ) : (
             statement.invoices.map((invoice, index) => (
               <tr key={invoice.id || index}>
-                <td className={`${td} pr-2 font-semibold`}>{invoice.number || "—"}</td>
-                <td className={`${td} pr-2`}>{showInstant(invoice.date, timezone) || "—"}</td>
+                <td className={`${td} pr-2 font-semibold`}>{invoice.number || "\u2014"}</td>
+                <td className={`${td} pr-2`}>{showInstant(invoice.date, timezone) || "\u2014"}</td>
                 <td className={`${td} pl-2 text-right tabular-nums`}>{fmt(invoice.total, cellFormat)}</td>
                 <td className={`${td} pl-2 text-right tabular-nums`}>{fmt(invoice.paid, cellFormat)}</td>
                 <td className={`${td} pl-2 text-right font-semibold tabular-nums`}>{fmt(invoice.balance, cellFormat)}</td>
@@ -93,7 +93,7 @@ export function StatementSheet({ statement, hospital, moneyFormat, timezone, asO
 
       <footer className="mt-6 flex justify-between gap-6 text-[7.5pt] text-muted">
         <span>Printed by {printedBy}, {asOf}</span>
-        <span>{hospital?.name || "HMS"}</span>
+        <span>{hospitalName || "HMS"}</span>
       </footer>
     </div>
   );

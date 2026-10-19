@@ -1,14 +1,25 @@
 import { rec, str } from "@/lib/utils/guards";
 
+export type SessionHospital = {
+  id: string;
+  name: string;
+  timezone: string;
+  currencyCode: string;
+  dateFormat: string;
+  locale: string;
+};
+
 export type SessionUser = {
   id: string;
   name: string;
   email: string;
   mustChangePassword: boolean;
   permissions: string[];
+  /** From GET /identity/me, for every user. null for a group-level user who has no hospital. */
+  hospital: SessionHospital | null;
 };
 
-/** GET /identity/me answers { data: { id, full_name, email, must_change_password, permissions, ... } } (confirmed from a real response). */
+/** GET /identity/me answers { data: { id, full_name, email, must_change_password, permissions, hospital: {...}, ... } } (schema confirmed). */
 export function parseMe(body: unknown): SessionUser {
   const data = rec(rec(body).data);
   const user = rec(data.user ?? data);
@@ -17,6 +28,8 @@ export function parseMe(body: unknown): SessionUser {
     ? rawPermissions.filter((p): p is string => typeof p === "string")
     : [];
   const email = str(user.email);
+  const h = rec(data.hospital ?? user.hospital);
+  const timezone = str(h.timezone);
 
   return {
     id: str(user.id),
@@ -24,5 +37,15 @@ export function parseMe(body: unknown): SessionUser {
     email,
     mustChangePassword: data.must_change_password === true || user.must_change_password === true,
     permissions,
+    hospital: timezone
+      ? {
+          id: str(h.id),
+          name: str(h.name),
+          timezone,
+          currencyCode: str(h.currency_code),
+          dateFormat: str(h.date_format),
+          locale: str(h.locale),
+        }
+      : null,
   };
 }

@@ -1,11 +1,7 @@
-import type { InvoiceLine } from "./parse";
+import type { GroupTotal, InvoiceLine } from "./parse";
 
-/** id -> code and category, from the price list. */
-export type ServiceIndex = Record<string, { code: string; category: string }>;
-export type BillLine = InvoiceLine & { code: string };
-export type BillGroup = { key: string; label: string; lines: BillLine[] };
+export const CATEGORY_ORDER = ["consultation", "procedure", "investigation", "bed", "other"] as const;
 
-const ORDER = ["consultation", "procedure", "investigation", "bed", "other"];
 const LABELS: Record<string, string> = {
   consultation: "Consultation charges",
   procedure: "Procedure charges",
@@ -14,18 +10,22 @@ const LABELS: Record<string, string> = {
   other: "Other charges",
 };
 
+export type BillGroup = { key: string; label: string; lines: InvoiceLine[]; /** The server's sum for this category ("" when it did not send one). */ subtotal: string };
+
 /**
- * Puts the lines under a heading per category. Only headings: no amount is added up here.
- * The category and code come from the line, else from the price list; a line with neither goes under "Other charges".
+ * Puts the lines under a heading per category, in a fixed order. The category comes from the server
+ * ("other" for a line that is not in the price list). The subtotal is the server's own number: nothing is added up here.
  */
-export function groupLines(lines: InvoiceLine[], index: ServiceIndex): BillGroup[] {
-  const groups = new Map<string, BillLine[]>();
+export function groupLines(lines: InvoiceLine[], totals: readonly GroupTotal[]): BillGroup[] {
+  const groups = new Map<string, InvoiceLine[]>();
   for (const line of lines) {
-    const known = index[line.serviceId];
-    const knownCategory = known?.category ?? "";
-    const category = ORDER.includes(line.category) ? line.category : ORDER.includes(knownCategory) ? knownCategory : "other";
-    const code = line.code || known?.code || "";
-    groups.set(category, [...(groups.get(category) ?? []), { ...line, code }]);
+    const key = (CATEGORY_ORDER as readonly string[]).includes(line.category) ? line.category : "other";
+    groups.set(key, [...(groups.get(key) ?? []), line]);
   }
-  return ORDER.filter((key) => groups.has(key)).map((key) => ({ key, label: LABELS[key], lines: groups.get(key) ?? [] }));
+  return CATEGORY_ORDER.filter((key) => groups.has(key)).map((key) => ({
+    key,
+    label: LABELS[key],
+    lines: groups.get(key) ?? [],
+    subtotal: totals.find((t) => t.category === key)?.amount ?? "",
+  }));
 }

@@ -12,7 +12,8 @@ export type PermissionCode =
   | "billing.service.view" | "billing.service.manage"
   | "billing.invoice.view" | "billing.invoice.create" | "billing.invoice.issue" | "billing.invoice.cancel"
   | "billing.discount.apply" | "billing.payment.record" | "billing.payment.reverse" | "billing.statement.view"
-  | "patient.view" | "patient.register" | "patient.consent.manage";
+  | "patient.view" | "patient.register" | "patient.consent.manage" | "patient.list"
+  | "dashboard.view";
 
 /** Comfort only: the server decides, and every 403 must still be handled. */
 export function can(permissions: readonly string[], code: PermissionCode): boolean {

@@ -138,7 +138,7 @@ export function BookingForm({ mode, practitioners, today, timezone }: Props) {
           />
           {errors.slot ? <p className="text-xs font-medium text-error">{errors.slot}</p> : null}
           {walkIn ? (
-            <p className="text-xs text-muted">Only today&apos;s free slots are listed. A slot that is already running may not appear here.</p>
+            <p className="text-xs text-muted">Only today&apos;s free slots are listed, including the slot that is running now.</p>
           ) : null}
         </div>
       </Block>

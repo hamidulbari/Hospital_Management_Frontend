@@ -20,9 +20,11 @@ import { searchPatientsAction } from "./actions";
 import type { PatientSearchResult } from "./parse";
 import { searchFormSchema, type SearchFormValues } from "./schemas";
 
-export function PatientSearch() {
+/** "initial" is the newest registrations (GET /patients?recent=true), shown until the person searches. */
+export function PatientSearch({ initial }: { initial: PatientSearchResult | null }) {
   const [criteria, setCriteria] = useState<SearchFormValues | null>(null);
-  const [result, setResult] = useState<PatientSearchResult | null>(null);
+  const [result, setResult] = useState<PatientSearchResult | null>(initial);
+  const [showingRecent, setShowingRecent] = useState(initial !== null);
   const [formError, setFormError] = useState<ClientError | null>(null);
   const [paging, setPaging] = useState(false);
   const {
@@ -43,6 +45,7 @@ export function PatientSearch() {
     if (response.ok) {
       setCriteria(values);
       setResult(response.data);
+      setShowingRecent(false);
       return;
     }
     if (response.error.code === "unauthenticated") {
@@ -67,10 +70,10 @@ export function PatientSearch() {
         {formError ? <ErrorNotice error={formError} /> : null}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
           <div className="md:col-span-4">
-            <TextField label="Name" autoComplete="off" error={errors.name?.message} {...register("name")} />
+            <TextField label="Name" autoComplete="off" hint="At least 2 characters." error={errors.name?.message} {...register("name")} />
           </div>
           <div className="md:col-span-3">
-            <TextField label="Phone" autoComplete="off" error={errors.phone?.message} {...register("phone")} />
+            <TextField label="Phone" autoComplete="off" hint="At least 7 digits." error={errors.phone?.message} {...register("phone")} />
           </div>
           <div className="md:col-span-2">
             <TextField label="MRN" autoComplete="off" error={errors.mrn?.message} {...register("mrn")} />
@@ -100,12 +103,20 @@ export function PatientSearch() {
       {result === null ? (
         <EmptyState
           title="Search to see patients"
-          description="The patient register cannot be listed in full: the server asks for a name, phone number or MRN. Enter one above and press Search."
+          description="Enter a name, phone number or MRN above and press Search."
         />
       ) : result.items.length === 0 ? (
-        <EmptyState title="No patient found" description="Check the spelling or try another detail." />
+        <EmptyState
+          title={showingRecent ? "No patient registered yet" : "No patient found"}
+          description={showingRecent ? "Register the first patient, or search above." : "Check the spelling or try another detail."}
+        />
       ) : (
         <div className="flex flex-col gap-4" aria-busy={paging || undefined}>
+          {showingRecent ? (
+            <p className="text-sm text-muted">
+              Recently registered: the newest {result.items.length} {result.items.length === 1 ? "patient" : "patients"}. Search above to find anyone else.
+            </p>
+          ) : null}
           <div className={clsx("overflow-x-auto border border-ink bg-surface", paging && "opacity-60")}>
             <table className="w-full text-left text-sm">
               <thead className="border-b border-ink font-headline text-xs uppercase tracking-wider">
@@ -119,30 +130,32 @@ export function PatientSearch() {
               </thead>
               <tbody>
                 {result.items.map((patient) => (
-                  <tr key={patient.id} className="border-b border-accent last:border-b-0 hover:bg-accent">
-                    <td className="p-3">{patient.mrn || "—"}</td>
+                  <tr key={patient.id} className="border-b border-accent last:border-b-0 hover:bg-section-soft">
+                    <td className="p-3">{patient.mrn || "\u2014"}</td>
                     <td className="p-3">
                       {/* prefetch off: opening a record is an audited read, so it must only happen on a click. */}
                       <Link href={`/patients/${patient.id}`} prefetch={false} className="font-medium underline">
                         {patient.displayName || "Unnamed patient"}
                       </Link>
                     </td>
-                    <td className="p-3">{patient.sexAtBirth ? labelFor(SEX_OPTIONS, patient.sexAtBirth) : "—"}</td>
-                    <td className="p-3">{patient.dateOfBirth ? formatLocalDate(patient.dateOfBirth) : "—"}</td>
-                    <td className="p-3">{patient.phone || "—"}</td>
+                    <td className="p-3">{patient.sexAtBirth ? labelFor(SEX_OPTIONS, patient.sexAtBirth) : "\u2014"}</td>
+                    <td className="p-3">{patient.dateOfBirth ? formatLocalDate(patient.dateOfBirth) : "\u2014"}</td>
+                    <td className="p-3">{patient.phone || "\u2014"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Pagination
-            page={result.currentPage}
-            lastPage={result.lastPage}
-            total={result.total}
-            pageSize={PATIENTS_PAGE_SIZE}
-            disabled={paging}
-            onPageChange={goTo}
-          />
+          {showingRecent ? null : (
+            <Pagination
+              page={result.currentPage}
+              lastPage={result.lastPage}
+              total={result.total}
+              pageSize={PATIENTS_PAGE_SIZE}
+              disabled={paging}
+              onPageChange={goTo}
+            />
+          )}
         </div>
       )}
     </div>
