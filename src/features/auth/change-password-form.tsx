@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/notice";
-import { TextField } from "@/components/ui/text-field";
+import { PasswordField } from "@/components/ui/password-field";
+import { useToast } from "@/components/ui/toast-provider";
 import type { ClientError } from "@/lib/api/errors";
 import { applyFieldErrors } from "@/lib/forms";
 import { changePasswordAction } from "./actions";
@@ -15,6 +16,7 @@ import { changePasswordFormSchema, type ChangePasswordValues } from "./schemas";
 
 export function ChangePasswordForm({ forced }: { forced: boolean }) {
   const router = useRouter();
+  const toast = useToast();
   const [formError, setFormError] = useState<ClientError | null>(null);
   const {
     register,
@@ -31,6 +33,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
     });
 
     if (result.ok) {
+      toast.success("Password changed.");
       router.replace("/");
       router.refresh();
       return;
@@ -40,25 +43,29 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
       return;
     }
     if (!applyFieldErrors(result.error, setError, ["current_password", "password"])) setFormError(result.error);
+    toast.fromError(result.error, { useFieldMessage: true });
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 flex flex-col gap-5">
+    <form
+      onSubmit={handleSubmit(onSubmit, () => toast.error("Please correct the highlighted fields."))}
+      noValidate
+      className="mt-6 flex flex-col gap-5"
+    >
       {formError ? <ErrorNotice error={formError} /> : null}
-      <TextField label="Current password" type="password" autoComplete="current-password" error={errors.current_password?.message} {...register("current_password")} />
-      <TextField
+      <PasswordField label="Current password" autoComplete="current-password" error={errors.current_password?.message} {...register("current_password")} />
+      <PasswordField
         label="New password"
-        type="password"
         autoComplete="new-password"
         hint="At least 12 characters with upper and lower case letters, a number and a symbol."
         error={errors.password?.message}
         {...register("password")}
       />
-      <TextField label="Repeat new password" type="password" autoComplete="new-password" error={errors.confirm_password?.message} {...register("confirm_password")} />
+      <PasswordField label="Repeat new password" autoComplete="new-password" error={errors.confirm_password?.message} {...register("confirm_password")} />
       <div className="flex items-center gap-4">
         <Button type="submit" loading={isSubmitting}>Change password</Button>
         {forced ? null : (
-          <Link href="/" className="text-sm font-medium text-primary-dark underline">Cancel</Link>
+          <Link href="/" className="text-sm font-medium text-ink underline hover:text-primary">Cancel</Link>
         )}
       </div>
     </form>

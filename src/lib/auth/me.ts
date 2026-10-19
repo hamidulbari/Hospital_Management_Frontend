@@ -8,11 +8,7 @@ export type SessionUser = {
   permissions: string[];
 };
 
-/**
- * ASSUMPTION (not yet confirmed against a real response): GET /identity/me answers
- * { data: { user: {...}, must_change_password, permissions } } or a flat { data: {...} }.
- * Both are handled. This is the ONLY place that knows the shape.
- */
+/** GET /identity/me answers { data: { id, full_name, email, must_change_password, permissions, ... } } (confirmed from a real response). */
 export function parseMe(body: unknown): SessionUser {
   const data = rec(rec(body).data);
   const user = rec(data.user ?? data);
@@ -24,7 +20,7 @@ export function parseMe(body: unknown): SessionUser {
 
   return {
     id: str(user.id),
-    name: str(user.name) || email || "User",
+    name: str(user.full_name) || str(user.name) || email || "User",
     email,
     mustChangePassword: data.must_change_password === true || user.must_change_password === true,
     permissions,

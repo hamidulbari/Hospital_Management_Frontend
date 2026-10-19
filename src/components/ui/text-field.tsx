@@ -1,4 +1,6 @@
-import { useId, type ComponentProps } from "react";
+﻿import { useId, type ComponentProps, type ReactNode } from "react";
+import clsx from "clsx";
+import { describedBy, FieldShell } from "./field-shell";
 import { Input } from "./input";
 
 type Props = Omit<ComponentProps<"input">, "id"> & {
@@ -6,27 +8,26 @@ type Props = Omit<ComponentProps<"input">, "id"> & {
   error?: string;
   hint?: string;
   id?: string;
+  /** Optional element inside the field, on the right (for example the show/hide button). */
+  trailing?: ReactNode;
 };
 
-export function TextField({ label, error, hint, id, ...rest }: Props) {
+export function TextField({ label, error, hint, id, trailing, className, ...rest }: Props) {
   const autoId = useId();
   const fieldId = id ?? autoId;
-  const hintId = hint ? `${fieldId}-hint` : undefined;
-  const errorId = error ? `${fieldId}-error` : undefined;
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={fieldId} className="font-headline text-xs font-semibold uppercase tracking-wider text-primary-dark">
-        {label}
-      </label>
-      <Input
-        id={fieldId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
-        {...rest}
-      />
-      {hint ? <p id={hintId} className="text-xs text-muted">{hint}</p> : null}
-      {error ? <p id={errorId} className="text-xs font-medium text-error">{error}</p> : null}
-    </div>
+    <FieldShell id={fieldId} label={label} error={error} hint={hint}>
+      <div className="relative">
+        <Input
+          id={fieldId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy(fieldId, { error, hint })}
+          className={clsx(trailing ? "pr-12" : undefined, className)}
+          {...rest}
+        />
+        {trailing ? <div className="absolute inset-y-0 right-0 flex items-center">{trailing}</div> : null}
+      </div>
+    </FieldShell>
   );
 }

@@ -43,3 +43,22 @@ export function formatInstant(iso: string, timeZone: string): string {
 export function todayInTimeZone(timeZone: string, now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
+
+/** Date ("YYYY-MM-DD") and time ("HH:mm") of an instant in the given timezone. null when the timezone is not valid. */
+export function localParts(instant: Date, timeZone: string): { date: string; time: string } | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(instant);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
+  } catch {
+    return null;
+  }
+}

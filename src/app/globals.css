@@ -1,36 +1,3 @@
-/* @import "tailwindcss";
-
-@theme inline {
-  --color-primary: #0284c7;
-  --color-primary-dark: #075985;
-  --color-background: #f0f9ff;
-  --color-surface: #ffffff;
-  --color-accent: #bae6fd;
-  --color-ink: #0f172a;
-  --color-muted: #475569;
-  --color-error: #b91c1c;
-  --font-headline: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-}
-
-@layer base {
-   *,
-  *::before,
-  *::after {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-  :focus-visible {
-    outline: 2px solid var(--color-primary-dark);
-    outline-offset: 2px;
-  }
-}
-
-button{
-  cursor: pointer;
-} */
-
- 
 @import "tailwindcss";
 
 @theme inline {
@@ -42,52 +9,55 @@ button{
   --color-ink: #0f172a;
   --color-muted: #475569;
   --color-error: #b91c1c;
-  --color-border: #bae6fd;
-
   --font-headline: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
+  /* Swiss style safety net: no rounding, no shadows anywhere. */
   *,
   *::before,
   *::after {
     border-radius: 0 !important;
     box-shadow: none !important;
   }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-ink);
-    font-family: var(--font-body);
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    color: var(--color-ink);
-    font-family: var(--font-headline);
-  }
-
-  p, label, li {
-    color: var(--color-ink);
-  }
-
+  /* Blue only appears on a trigger. Focus is one. */
   :focus-visible {
-    outline: 2px solid var(--color-primary-dark);
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+}
 
-  button {
-    cursor: pointer;
-  }
+/* Hide the browser's own reveal button: we draw ours. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
 
-  input, textarea, select {
-    background-color: var(--color-surface);
-    color: var(--color-ink);
-    border: 1px solid var(--color-accent);
+/* A new page fades in a little. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 
-  input::placeholder,
-  textarea::placeholder {
-    color: var(--color-muted);
+.page-enter {
+  animation: page-in 160ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .animate-pulse {
+    animation: none;
   }
+}
+
+button{
+  cursor: pointer;
+  transition: all;
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { ErrorNotice } from "@/components/ui/notice";
+import { PasswordField } from "@/components/ui/password-field";
 import { TextField } from "@/components/ui/text-field";
 import { clientErrorFromResponse, networkError, type ClientError } from "@/lib/api/errors";
 import { applyFieldErrors } from "@/lib/forms";
@@ -51,7 +52,7 @@ export function LoginForm() {
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 flex flex-col gap-5">
       {formError ? <ErrorNotice error={formError} /> : null}
       <TextField label="Email" type="email" autoComplete="username" error={errors.email?.message} {...register("email")} />
-      <TextField label="Password" type="password" autoComplete="current-password" error={errors.password?.message} {...register("password")} />
+      <PasswordField label="Password" autoComplete="current-password" error={errors.password?.message} {...register("password")} />
       <Button type="submit" loading={isSubmitting}>Sign in</Button>
     </form>
   );

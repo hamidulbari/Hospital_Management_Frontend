@@ -9,8 +9,8 @@ export type NavConfig = {
 
 export const NAV_ITEMS: readonly NavConfig[] = [
   { label: "Dashboard", href: "/", ready: true, anyOf: [] },
-  { label: "Patients", href: "/patients", ready: false, anyOf: ["patient.view"] },
-  { label: "Appointments", href: "/appointments", ready: false, anyOf: ["appointment.view"] },
+  { label: "Patients", href: "/patients", ready: true, anyOf: ["patient.view"] },
+  { label: "Appointments", href: "/appointments", ready: true, anyOf: ["appointment.view"] },
   { label: "Billing", href: "/billing", ready: false, anyOf: ["billing.invoice.view", "billing.service.view", "billing.statement.view"] },
   {
     label: "Administration",

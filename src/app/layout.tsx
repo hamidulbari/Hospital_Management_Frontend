@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter, Public_Sans } from "next/font/google";
+import { NavigationProgress } from "@/components/ui/navigation-progress";
+import { ToastProvider } from "@/components/ui/toast-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,7 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${publicSans.variable}`}>
       <body className="bg-background font-body text-ink antialiased">
-        <main>{children}</main>
+        <ToastProvider>
+          <NavigationProgress>
+            <main>{children}</main>
+          </NavigationProgress>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -14,6 +14,8 @@
   "dependencies": {
     "@hookform/resolvers": "^5.9.2",
     "clsx": "^2.1.1",
+    "flag-icons": "^7.6.0",
+    "libphonenumber-js": "^1.13.15",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { can, type PermissionCode } from "@/lib/permissions";

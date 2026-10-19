@@ -1,4 +1,4 @@
-import clsx from "clsx";
+﻿import clsx from "clsx";
 import type { ReactNode } from "react";
 import type { ClientError } from "@/lib/api/errors";
 
@@ -8,7 +8,7 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "error"; c
       role={tone === "error" ? "alert" : "status"}
       className={clsx(
         "border border-l-4 bg-surface p-4 text-sm",
-        tone === "error" ? "border-error text-error" : "border-primary-dark text-primary-dark",
+        tone === "error" ? "border-error text-error" : "border-ink text-ink",
       )}
     >
       {children}

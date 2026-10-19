@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import clsx from "clsx";
 import Link from "next/link";
@@ -31,7 +31,7 @@ export function SidebarNav({ items }: { items: SidebarItem[] }) {
                 aria-current={active ? "page" : undefined}
                 className={clsx(
                   "block border-l-4 px-3 py-2 text-sm font-medium",
-                  active ? "border-primary bg-accent text-primary-dark" : "border-transparent text-primary-dark hover:bg-background",
+                  active ? "border-primary bg-accent text-ink" : "border-transparent text-ink hover:bg-background",
                 )}
               >
                 {item.label}
