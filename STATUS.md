@@ -89,3 +89,35 @@ Last updated: after Slice 2 (Patients)
 
 ## Backend requests (added)
 7. Dashboard summary endpoint (counts, last 7 days, per doctor, collection by method). Text for the backend chat is in the dashboard message.
+
+
+## Slice 5 Billing - WRITTEN, NOT YET RUN
+- /billing (invoices of a day, status filter, 20 per page), /billing/new (patient + lines), /billing/[id] (lines, server totals, payments), /billing/services (price list, add and edit with manage permission), /billing/statement and /billing/statement/[patientId].
+- Money is always a string; nothing is added up in the browser. Discount and "other item" controls are hidden without billing.discount.apply / billing.service.manage.
+- Payment and reverse send Idempotency-Key: same request = same key, any change or a refused request = new key. Submit is disabled while running.
+- Nothing financial is deleted: only a draft can be deleted; issued invoices are cancelled with a reason; payments are reversed with a reason.
+
+## Assumptions to confirm (src/features/billing/parse.ts)
+- Invoice: invoice_number, status, patient{id,full_name,mrn}, total|grand_total, balance|balance_due, paid_amount, lines[], payments[] (amount, method, reference, status posted|reversed, receipt_number).
+- Statement: invoices[] and outstanding_total.
+- Services: code, name, category, unit_price (string), tax_percent, is_active.
+- Lists accept ?page= and ?date=.
+
+## Backend requests (added)
+11. Response schemas for invoices, payments, statement and services in openapi.json.
+12. Users without organization.hospital.view (receptionist, accountant) cannot read the hospital currency and timezone. Please include them in /identity/me, or a read-only endpoint.
+13. GET /billing/invoices: confirm what "date" filters (issue date? drafts have none) and add a way to list recent invoices without a date.
+
+
+ ## Slice 6a Administration: Practitioners - WRITTEN, NOT YET RUN
+- /admin (overview), /admin/practitioners (list, add), /admin/practitioners/[id] (profile edit, working hours for many weekdays at once, leave and extra hours, specializations incl. new ones, credentials with verify/reject).
+- Time is typed as HH:MM (own field). Working hours and leave can be removed (config, with confirm).
+- Slice 6b (not started): users, roles (read), hospital profile, branches, departments, audit trail.
+
+## Assumptions to confirm (src/features/practitioners/parse.ts)
+- Practitioner: full_name, practitioner_type, status, specializations[{id,name,is_primary}], credentials[{credential_type,registration_number,status}], primary_department, user.
+- Rules: weekday (1-7), start_time, end_time, slot_minutes, valid_from, valid_until. Exceptions: exception_date, kind, start_time, end_time, reason.
+- GET /practitioners accepts ?page=; GET /specializations returns all.
+
+## Backend requests (added)
+14. Response schemas for practitioners, specializations, credentials, availability rules and exceptions.

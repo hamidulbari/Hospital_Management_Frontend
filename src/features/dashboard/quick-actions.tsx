@@ -10,7 +10,7 @@ const ACTIONS: Action[] = [
   { label: "Walk-in", description: "Patient without a booking", href: "/appointments/walk-in", permission: "appointment.book", ready: true },
   { label: "Today's appointments", description: "Check in, cancel, reschedule", href: "/appointments", permission: "appointment.view", ready: true },
   { label: "OPD queue", description: "Tokens and who is waiting", href: "/appointments/queue", permission: "appointment.view", ready: true },
-  { label: "New invoice", description: "Bill a patient", href: "/billing/new", permission: "billing.invoice.create", ready: false },
+  { label: "New invoice", description: "Bill a patient", href: "/billing/new", permission: "billing.invoice.create", ready: true },
 ];
 
 export function QuickActions({ permissions }: { permissions: readonly string[] }) {

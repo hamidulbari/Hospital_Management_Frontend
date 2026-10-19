@@ -10,7 +10,17 @@ const LABELS: Record<string, string> = {
   "/appointments/walk-in": "Walk-in",
   "/consultation": "Consultation",
   "/billing": "Billing",
+  "/billing/new": "New invoice",
+  "/billing/services": "Price list",
+  "/billing/statement": "Patient statement",
   "/admin": "Administration",
+  "/admin/practitioners": "Practitioners",
+  "/admin/users": "Users",
+  "/admin/roles": "Roles and permissions",
+  "/admin/hospital": "Hospital profile",
+  "/admin/branches": "Branches",
+  "/admin/departments": "Departments",
+  "/admin/audit": "Audit trail",
 };
 
 // A 26-character id in the URL: named by what lives under the parent, never by a patient's name.
@@ -19,6 +29,10 @@ const ID_LABELS: Record<string, string> = {
   "/patients": "Patient record",
   "/appointments": "Appointment",
   "/consultation": "Encounter",
+  "/billing": "Invoice",
+  "/billing/statement": "Statement",
+  "/admin/practitioners": "Profile",
+  "/admin/users": "User",
 };
 
 function readable(segment: string): string {

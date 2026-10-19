@@ -51,8 +51,8 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6 flex flex-col gap-5">
       {formError ? <ErrorNotice error={formError} /> : null}
-      <TextField label="Email" type="email" autoComplete="username" error={errors.email?.message} {...register("email")} />
-      <PasswordField label="Password" autoComplete="current-password" error={errors.password?.message} {...register("password")} />
+      <TextField label="Email" type="email" autoComplete="username" error={errors.email?.message} {...register("email")} value={'admin@example.com'} />
+      <PasswordField value={'Hamid@123456789'} label="Password" autoComplete="current-password" error={errors.password?.message} {...register("password")} />
       <Button type="submit" loading={isSubmitting}>Sign in</Button>
     </form>
   );

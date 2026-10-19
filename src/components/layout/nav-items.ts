@@ -12,12 +12,14 @@ export const NAV_ITEMS: readonly NavConfig[] = [
   { label: "Patients", href: "/patients", ready: true, anyOf: ["patient.view"] },
   { label: "Appointments", href: "/appointments", ready: true, anyOf: ["appointment.view"] },
   { label: "Consultation", href: "/consultation", ready: true, anyOf: ["clinical.encounter.view"] },
-  { label: "Billing", href: "/billing", ready: false, anyOf: ["billing.invoice.view", "billing.service.view", "billing.statement.view"] },
+  { label: "Billing", href: "/billing", ready: true, anyOf: ["billing.invoice.view", "billing.service.view", "billing.statement.view"] },
   {
     label: "Administration",
     href: "/admin",
-    ready: false,
+    ready: true,
+    // "manage" on purpose: a nurse or receptionist can view practitioners, but does not need this menu.
     anyOf: [
+      "practitioner.manage",
       "identity.user.view",
       "identity.role.view",
       "audit.event.view",
