@@ -14,6 +14,7 @@ import { StatementSheet } from "@/features/billing/statement-sheet";
 import { labelFor } from "@/features/patients/options";
 import { apiLoad } from "@/lib/api/load";
 import { requireSession } from "@/lib/auth/session";
+import { toLocalSrc } from "@/lib/branding";
 import { formatLocalDate } from "@/lib/datetime";
 import { showInstant } from "@/lib/format-instant";
 import { getHospital, hospitalNow } from "@/lib/hospital";
@@ -105,6 +106,7 @@ export default async function StatementPage({ params }: { params: Promise<{ pati
         <StatementSheet
           statement={statement}
           hospitalName={hospital?.name || "HMS"}
+          logoSrc={toLocalSrc(hospital?.logoUrl, "logo")}
           moneyFormat={moneyFormat}
           timezone={now.timezone}
           asOf={`${formatLocalDate(now.today)}, ${now.time}`}

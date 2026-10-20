@@ -49,7 +49,7 @@ export function InvoiceSheet({ invoice, moneyFormat, timezone, printedBy, printe
 
   return (
     <div className="text-[9pt] leading-snug text-ink">
-      <HospitalBlock hospital={invoice.hospital} />
+      <HospitalBlock hospital={invoice.hospital} logoSrc={invoice.hospital.logoSrc} />
       <hr className="my-3 border-ink" />
 
       <section className="grid grid-cols-2 gap-8">
@@ -209,6 +209,14 @@ export function InvoiceSheet({ invoice, moneyFormat, timezone, printedBy, printe
         <div className="w-[60mm] border-t border-ink pt-1">Patient / payer signature</div>
         <div className="w-[60mm] border-t border-ink pt-1 text-right">Authorised signatory</div>
       </div>
+
+      {invoice.hospital.termsText ? (
+        <section className="mt-6 text-[8pt]">
+          <p className="font-headline font-bold uppercase tracking-wider">Terms</p>
+          <p className="mt-1 whitespace-pre-line text-muted">{invoice.hospital.termsText}</p>
+        </section>
+      ) : null}
+      {invoice.hospital.footerText ? <p className="mt-4 whitespace-pre-line text-center text-[8.5pt]">{invoice.hospital.footerText}</p> : null}
 
       <footer className="mt-6 flex flex-col gap-1 text-[7.5pt] text-muted">
         <span>This is a bill, not a GST tax invoice.</span>

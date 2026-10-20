@@ -1,4 +1,4 @@
-import { rec, str } from "@/lib/utils/guards";
+import { rec, str, strOrNull } from "@/lib/utils/guards";
 
 export type SessionHospital = {
   id: string;
@@ -7,6 +7,7 @@ export type SessionHospital = {
   currencyCode: string;
   dateFormat: string;
   locale: string;
+  logoUrl: string | null;
 };
 
 export type SessionUser = {
@@ -45,6 +46,7 @@ export function parseMe(body: unknown): SessionUser {
           currencyCode: str(h.currency_code),
           dateFormat: str(h.date_format),
           locale: str(h.locale),
+          logoUrl: strOrNull(h.logo_url),
         }
       : null,
   };

@@ -11,7 +11,7 @@ describe("parseInvoice (real schema)", () => {
         lines: [{ line_no: 1, service_id: "s1", service_code: "CONS", category: "consultation", description: "Consultation", quantity: 1, unit_price: "500.00", discount_amount: "0.00", tax_percent: "0.00", tax_amount: "0.00", line_total: "500.00", added_at: "2026-10-19T10:00:00+00:00" }],
         group_totals: { other: "670.00", consultation: "500.00" },
         payments: [{ id: "pay1", receipt_no: "RCP-1", amount: "500.00", method: "cash", status: "posted", received_at: "2026-10-19T10:05:00+00:00" }],
-        hospital: { name: "City Hospital", gstin: "27ABCDE1234F1Z5", city: "Pune", pincode: "411001", country_code: "IN" },
+        hospital: { name: "City Hospital", gstin: "27ABCDE1234F1Z5", city: "Pune", pincode: "411001", country_code: "IN", logo_url: "http://backend.test/api/v1/branding/files/logo?code=C1&v=abc123", bill_footer_text: "Thank you", bill_terms_text: "Pay within 7 days" },
         consulting_practitioners: [{ id: "d1", full_name: "Dr Khan" }],
         tax_summary: [{ tax_percent: "5.00", taxable_value: "400.00", tax_amount: "20.00", total: "420.00" }],
       },
@@ -20,7 +20,7 @@ describe("parseInvoice (real schema)", () => {
     expect(invoice.lines[0]).toMatchObject({ code: "CONS", category: "consultation", unitPrice: "500.00", total: "500.00", quantity: "1", addedAt: "2026-10-19T10:00:00+00:00" });
     expect(invoice.payments[0]).toMatchObject({ receipt: "RCP-1", amount: "500.00", status: "posted", at: "2026-10-19T10:05:00+00:00" });
     expect(invoice.groupTotals).toEqual([{ category: "consultation", amount: "500.00" }, { category: "other", amount: "670.00" }]);
-    expect(invoice.hospital).toMatchObject({ name: "City Hospital", gstin: "27ABCDE1234F1Z5", city: "Pune" });
+    expect(invoice.hospital).toMatchObject({ name: "City Hospital", gstin: "27ABCDE1234F1Z5", city: "Pune", logoSrc: "/api/branding/logo?v=abc123&code=C1", footerText: "Thank you", termsText: "Pay within 7 days" });
     expect(invoice.consultants).toEqual(["Dr Khan"]);
     expect(invoice.taxSummary).toEqual([{ percent: "5.00", taxable: "400.00", tax: "20.00", total: "420.00" }]);
   });

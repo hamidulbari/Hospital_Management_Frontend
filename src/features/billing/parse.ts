@@ -1,5 +1,6 @@
 import { parsePage, type PageInfo } from "@/lib/api/meta";
 import { bool, list, num, rec, str, strOrNull, type Rec } from "@/lib/utils/guards";
+import { toLocalSrc } from "@/lib/branding";
 import { nameOf } from "@/lib/utils/names";
 
 export type ServiceItem = { id: string; code: string; name: string; category: string; unitPrice: string; taxPercent: string; active: boolean };
@@ -17,7 +18,20 @@ export type InvoiceLine = {
   addedAt: string | null;
 };
 export type PaymentItem = { id: string; amount: string; method: string; reference: string; status: string; receipt: string; at: string | null; reason: string | null };
-export type InvoiceHospital = { name: string; registrationNo: string; gstin: string; phone: string; email: string; city: string; state: string; pincode: string };
+export type InvoiceHospital = {
+  name: string;
+  registrationNo: string;
+  gstin: string;
+  phone: string;
+  email: string;
+  city: string;
+  state: string;
+  pincode: string;
+  /** Our own address for the logo (never the backend address). null when no logo is set. */
+  logoSrc: string | null;
+  footerText: string;
+  termsText: string;
+};
 export type TaxRow = { percent: string; taxable: string; tax: string; total: string };
 export type GroupTotal = { category: string; amount: string };
 
@@ -162,6 +176,9 @@ function hospitalOf(value: unknown): InvoiceHospital {
     city: str(h.city),
     state: str(h.state),
     pincode: str(h.pincode),
+    logoSrc: toLocalSrc(str(h.logo_url), "logo"),
+    footerText: str(h.bill_footer_text),
+    termsText: str(h.bill_terms_text),
   };
 }
 

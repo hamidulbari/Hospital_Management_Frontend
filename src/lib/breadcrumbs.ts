@@ -18,6 +18,7 @@ const LABELS: Record<string, string> = {
   "/admin/users": "Users",
   "/admin/roles": "Roles and permissions",
   "/admin/hospital": "Hospital profile",
+  "/admin/settings": "Settings",
   "/admin/branches": "Branches",
   "/admin/departments": "Departments",
   "/admin/audit": "Audit trail",

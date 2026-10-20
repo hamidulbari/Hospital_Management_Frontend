@@ -10,6 +10,7 @@ import { sectionFor } from "@/lib/sections";
 import { SidebarNav, type SidebarItem } from "./sidebar-nav";
 
 type User = { name: string; email: string };
+type Brand = { name: string; logoSrc: string | null };
 
 function UserBlock({ user }: { user: User }) {
   return (
@@ -28,7 +29,27 @@ function UserBlock({ user }: { user: User }) {
   );
 }
 
-export function AppShell({ items, user, children }: { items: SidebarItem[]; user: User; children: ReactNode }) {
+/** The hospital's logo (when it has one), "HMS" and the hospital's name. */
+function BrandBlock({ brand, compact = false }: { brand: Brand; compact?: boolean }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      {brand.logoSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={brand.logoSrc}
+          alt={brand.name ? `${brand.name} logo` : "Hospital logo"}
+          className={compact ? "h-8 w-auto max-w-20 shrink-0 object-contain" : "h-10 w-auto max-w-24 shrink-0 object-contain"}
+        />
+      ) : null}
+      <div className="min-w-0">
+        <p className={compact ? "font-headline text-xl font-bold tracking-tight text-ink" : "font-headline text-2xl font-bold tracking-tight text-ink"}>HMS</p>
+        {brand.name ? <p className="truncate text-xs text-muted">{brand.name}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+export function AppShell({ items, user, brand = { name: "", logoSrc: null }, children }: { items: SidebarItem[]; user: User; brand?: Brand; children: ReactNode }) {
   const pathname = usePathname() ?? "";
   // The menu is "open for this page". Moving to another page closes it by itself.
   const [openPath, setOpenPath] = useState<string | null>(null);
@@ -40,14 +61,14 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
       <SectionStripe className="fixed inset-x-0 top-0 z-50 h-1" />
 
       {/* Phone and small tablet: a top bar with a Menu button. */}
-      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-ink bg-surface px-4 pt-1 md:hidden">
-        <p className="font-headline text-xl font-bold tracking-tight text-ink">HMS</p>
+      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-ink bg-surface px-4 pt-1 md:hidden">
+        <BrandBlock brand={brand} compact />
         <button
           type="button"
           aria-expanded={open}
           aria-controls={open ? "mobile-menu" : undefined}
           onClick={() => setOpenPath(open ? null : pathname)}
-          className="h-10 border border-ink px-4 text-sm font-semibold text-ink hover:border-primary hover:bg-accent"
+          className="h-10 shrink-0 border border-ink px-4 text-sm font-semibold text-ink hover:border-primary hover:bg-accent"
         >
           {open ? "Close" : "Menu"}
         </button>
@@ -67,7 +88,7 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
       {/* Wide screens: fixed sidebar. Only the menu in the middle scrolls, so Sign out is always visible. */}
       <aside className="hidden border-ink bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col md:self-start md:border-r">
         <div className="shrink-0 border-b border-ink p-6 pt-7">
-          <p className="font-headline text-2xl font-bold tracking-tight text-ink">HMS</p>
+          <BrandBlock brand={brand} />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           <SidebarNav items={items} />
@@ -80,7 +101,7 @@ export function AppShell({ items, user, children }: { items: SidebarItem[]; user
       {/* data-section sets the colour of everything inside: buttons, tabs, headings, table headers. */}
       <main id="main" data-section={sectionFor(pathname)} className="min-w-0 flex-1 bg-background p-4 pt-6 sm:p-6 md:p-10">
         {/* Content stays next to the sidebar and stops growing on very wide screens. */}
-        <div className="w-full ">
+        <div className="w-full max-w-[1400px]">
           <Breadcrumbs />
           {children}
         </div>

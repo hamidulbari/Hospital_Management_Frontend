@@ -10,6 +10,7 @@ const AREAS: Area[] = [
   { title: "Users", description: "Login accounts: create, enable or disable, give roles", href: "/admin/users", anyOf: ["identity.user.view"] },
   { title: "Roles and permissions", description: "What each role may do (read only)", href: "/admin/roles", anyOf: ["identity.role.view"] },
   { title: "Hospital profile", description: "Name, address, GSTIN, timezone: printed on bills", href: "/admin/hospital", anyOf: ["organization.hospital.view"] },
+  { title: "Settings", description: "Logo, login page picture, bill texts, appointment rules, email, SMS and WhatsApp", href: "/admin/settings", anyOf: ["organization.hospital.view"] },
   { title: "Branches", description: "Hospital branches", href: "/admin/branches", anyOf: ["organization.branch.view"] },
   { title: "Departments", description: "Clinical, diagnostic and support departments", href: "/admin/departments", anyOf: ["organization.department.view"] },
   { title: "Audit trail", description: "Who opened or changed what (read only)", href: "/admin/audit", anyOf: ["audit.event.view"] },

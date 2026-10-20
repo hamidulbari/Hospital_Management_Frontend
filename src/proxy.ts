@@ -17,6 +17,8 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// api/branding is public on purpose: the login page shows the hospital's logo and image before anyone signs in.
+// It only serves the two public pictures. api/hospital-branding (upload and remove) is NOT listed here, so it needs the cookie.
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api/auth|api/branding|_next/static|_next/image|favicon.ico).*)"],
 };

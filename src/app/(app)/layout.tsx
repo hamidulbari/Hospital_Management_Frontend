@@ -1,8 +1,9 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
 import { PermissionsProvider } from "@/components/permissions-provider";
 import { requireSession } from "@/lib/auth/session";
+import { toLocalSrc } from "@/lib/branding";
 import { canAny } from "@/lib/permissions";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ({ label, href, ready }) => ({ label, href, ready }),
   );
 
+  // The logo address from /identity/me becomes our own address: the browser never talks to the backend.
+  const brand = { name: session.hospital?.name ?? "", logoSrc: toLocalSrc(session.hospital?.logoUrl, "logo") };
+
   return (
     <PermissionsProvider permissions={session.permissions}>
       <a
@@ -22,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         Skip to content
       </a>
-      <AppShell items={items} user={{ name: session.name, email: session.email }}>
+      <AppShell items={items} user={{ name: session.name, email: session.email }} brand={brand}>
         {children}
       </AppShell>
     </PermissionsProvider>

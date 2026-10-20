@@ -1,5 +1,5 @@
 export type PermissionCode =
-  | "organization.hospital.view" | "organization.hospital.manage"
+  | "organization.hospital.view" | "organization.hospital.manage" | "organization.integration.manage"
   | "organization.branch.view" | "organization.branch.manage"
   | "organization.department.view" | "organization.department.manage"
   | "identity.user.view" | "identity.user.manage" | "identity.user.assign_roles" | "identity.role.view"

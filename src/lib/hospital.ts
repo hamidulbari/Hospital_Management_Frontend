@@ -4,9 +4,17 @@ import { apiLoad } from "@/lib/api/load";
 import { getSession } from "@/lib/auth/session";
 import { localTodayIso } from "@/lib/calendar";
 import { localParts } from "@/lib/datetime";
-import { list, rec, str } from "@/lib/utils/guards";
+import { list, rec, str, strOrNull } from "@/lib/utils/guards";
 
-export type HospitalContext = { name: string; timezone: string; currencyCode: string; dateFormat: string; locale: string };
+export type HospitalContext = {
+  name: string;
+  timezone: string;
+  currencyCode: string;
+  dateFormat: string;
+  locale: string;
+  /** The backend's address of the logo, or null. Turn it into our own address with toLocalSrc before showing it. */
+  logoUrl: string | null;
+};
 
 /**
  * The hospital of the signed-in user. It comes from GET /identity/me (no extra permission needed).
@@ -16,7 +24,14 @@ export const getHospital = cache(async (): Promise<HospitalContext | null> => {
   const session = await getSession();
   const fromMe = session?.hospital;
   if (fromMe) {
-    return { name: fromMe.name, timezone: fromMe.timezone, currencyCode: fromMe.currencyCode, dateFormat: fromMe.dateFormat, locale: fromMe.locale };
+    return {
+      name: fromMe.name,
+      timezone: fromMe.timezone,
+      currencyCode: fromMe.currencyCode,
+      dateFormat: fromMe.dateFormat,
+      locale: fromMe.locale,
+      logoUrl: fromMe.logoUrl,
+    };
   }
 
   const result = await apiLoad<unknown>("/organization/hospitals", { query: { per_page: 1 } });
@@ -30,7 +45,17 @@ export const getHospital = cache(async (): Promise<HospitalContext | null> => {
     currencyCode: str(first.currency_code),
     dateFormat: str(first.date_format),
     locale: str(first.default_locale),
+    logoUrl: strOrNull(first.logo_url),
   };
+});
+
+/** The id of the hospital this user works in. Taken on the server, never trusted from the browser. */
+export const getHospitalId = cache(async (): Promise<string | null> => {
+  const session = await getSession();
+  if (session?.hospital?.id) return session.hospital.id;
+  const result = await apiLoad<unknown>("/organization/hospitals", { query: { per_page: 1 } });
+  if (!result.ok) return null;
+  return str(rec(list(rec(result.data).data)[0]).id) || null;
 });
 
 /** Today and the time now in the hospital's timezone. Falls back to this computer's clock when there is no hospital. */

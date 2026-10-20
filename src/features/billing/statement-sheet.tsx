@@ -8,6 +8,7 @@ import type { Statement } from "./parse";
 type Props = {
   statement: Statement;
   hospitalName: string;
+  logoSrc?: string | null;
   moneyFormat: MoneyFormat;
   timezone: string | null;
   asOf: string;
@@ -26,13 +27,13 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 /** The A4 paper version of a patient statement. Amounts are the server's. The statement carries no hospital address. */
-export function StatementSheet({ statement, hospitalName, moneyFormat, timezone, asOf, printedBy }: Props) {
+export function StatementSheet({ statement, hospitalName, logoSrc, moneyFormat, timezone, asOf, printedBy }: Props) {
   const cellFormat: MoneyFormat = { ...moneyFormat, currency: undefined };
   const currency = statement.currency || moneyFormat.currency;
 
   return (
     <div className="text-[9pt] leading-snug text-ink">
-      <HospitalBlock hospital={{ name: hospitalName }} />
+      <HospitalBlock hospital={{ name: hospitalName }} logoSrc={logoSrc} />
       <hr className="my-3 border-ink" />
 
       <section className="grid grid-cols-2 gap-8">
