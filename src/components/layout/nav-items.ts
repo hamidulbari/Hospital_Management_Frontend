@@ -28,4 +28,6 @@ export const NAV_ITEMS: readonly NavConfig[] = [
       "organization.department.view",
     ],
   },
+  // The hospital's logo and pictures, bill texts, appointment rules, and the email, SMS and WhatsApp settings.
+  { label: "Settings", href: "/settings", ready: true, anyOf: ["organization.hospital.view"] },
 ];

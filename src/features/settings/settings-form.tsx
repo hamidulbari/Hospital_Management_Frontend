@@ -28,9 +28,19 @@ function hintFor(def: SettingDef): string {
   return parts.join(" ");
 }
 
-type Props = { initial: SettingsView; canGeneral: boolean; canIntegration: boolean };
+type Props = {
+  initial: SettingsView;
+  canGeneral: boolean;
+  canIntegration: boolean;
+  /** Show only these groups (a page of its own, like Email). Without it every group is shown. */
+  groups?: readonly string[];
+  /** The page already explains that the settings are only saved, so the form does not say it again. */
+  quiet?: boolean;
+  /** Hide the title of the group (the page's own title says it). */
+  hideGroupTitle?: boolean;
+};
 
-export function SettingsForm({ initial, canGeneral, canIntegration }: Props) {
+export function SettingsForm({ initial, canGeneral, canIntegration, groups, quiet = false, hideGroupTitle = false }: Props) {
   const toast = useToast();
   const [view, setView] = useState(initial);
   const [draft, setDraft] = useState<Draft>(() => initialDraft(initial));
@@ -39,8 +49,9 @@ export function SettingsForm({ initial, canGeneral, canIntegration }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
+  const visible = groups ? view.defs.filter((def) => groups.includes(def.group)) : view.defs;
   const canEdit = (def: SettingDef) => (def.integration ? canIntegration : canGeneral);
-  const anyEditable = view.defs.some(canEdit);
+  const anyEditable = visible.some(canEdit);
 
   const add = (set: ReadonlySet<string>, key: string): ReadonlySet<string> => new Set([...set, key]);
   const without = (set: ReadonlySet<string>, key: string): ReadonlySet<string> => new Set([...set].filter((k) => k !== key));
@@ -182,18 +193,18 @@ export function SettingsForm({ initial, canGeneral, canIntegration }: Props) {
     );
   }
 
-  const groups = groupDefs(view.defs);
+  const shownGroups = groupDefs(visible);
 
   return (
     <div className="flex flex-col gap-8">
-      {groups.length === 0 ? <p className="text-sm text-muted">No settings are available for you.</p> : null}
+      {shownGroups.length === 0 ? <p className="text-sm text-muted">No settings are available for you here.</p> : null}
 
-      {groups.map(({ group, defs }) => {
+      {shownGroups.map(({ group, defs }) => {
         const savedOnly = defs.every((def) => def.integration && !def.enforced);
         return (
           <section key={group} className="border border-ink bg-surface p-6">
-            <h3 className="mb-4 font-headline text-sm font-bold uppercase tracking-wider text-ink">{groupLabel(group)}</h3>
-            {savedOnly ? (
+            {hideGroupTitle ? null : <h3 className="mb-4 font-headline text-sm font-bold uppercase tracking-wider text-ink">{groupLabel(group)}</h3>}
+            {savedOnly && !quiet ? (
               <div className="mb-5">
                 <Notice>These settings are only saved for now. Nothing sends email, SMS or WhatsApp messages yet, so there is no test button.</Notice>
               </div>
@@ -234,7 +245,7 @@ export function SettingsForm({ initial, canGeneral, canIntegration }: Props) {
           <Button onClick={save} loading={busy}>Save settings</Button>
         </div>
       ) : (
-        <p className="text-xs text-muted">You may read the settings but not change them.</p>
+        <p className="text-xs text-muted">You may read these settings but not change them.</p>
       )}
     </div>
   );

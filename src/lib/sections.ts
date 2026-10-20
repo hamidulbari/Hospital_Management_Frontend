@@ -1,4 +1,4 @@
-export type SectionKey = "dashboard" | "patients" | "appointments" | "consultation" | "billing" | "admin";
+export type SectionKey = "dashboard" | "patients" | "appointments" | "consultation" | "billing" | "admin" | "settings";
 
 const BY_FIRST_SEGMENT: Record<string, SectionKey> = {
   patients: "patients",
@@ -6,6 +6,7 @@ const BY_FIRST_SEGMENT: Record<string, SectionKey> = {
   consultation: "consultation",
   billing: "billing",
   admin: "admin",
+  settings: "settings",
 };
 
 /** The part of the app a path belongs to. It decides the colour. Anything unknown is the dashboard. */

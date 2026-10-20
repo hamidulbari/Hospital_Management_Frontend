@@ -13,8 +13,7 @@
   --color-section: var(--section);
   --color-section-soft: var(--section-soft);
   --color-section-ink: var(--section-ink);
-  --font-headline:
-    var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -55,6 +54,11 @@
     --section: #be185d;
     --section-soft: #fce7f3;
     --section-ink: #831843;
+  }
+  [data-section="settings"] {
+    --section: #334155;
+    --section-soft: #e2e8f0;
+    --section-ink: #0f172a;
   }
 
   /* Swiss style safety net: no rounding, no shadows anywhere. */
@@ -157,8 +161,4 @@ input::-ms-clear {
   article {
     break-inside: avoid;
   }
-}
-button {
-  cursor: pointer;
-  transition: all;
 }
